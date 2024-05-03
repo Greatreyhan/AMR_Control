@@ -37,6 +37,31 @@ typedef struct{
 	encoder_t						ENC;
 }motor_t;
 
+
+typedef struct{
+	double 	Xp;
+	double	Yp;
+	double	Tp;
+
+	double	Xg;
+	double	Yg;
+	double	Tg;
+
+	double	V1;
+	double	V2;
+	double 	V3;
+	double	Vx;
+	double	Vy;
+	double	Vt;
+	double	S1;
+	double	S2;
+	double	S3;
+	double 	S4;
+	double	Sx;
+	double	Sy;
+	double	St;
+}kinematic_t;
+
 /*
 	||****** Run Omnidirection Wheel *****||
 	-	motor_t motor
@@ -46,6 +71,7 @@ typedef struct{
 */
 void agv_run_motor(motor_t motor, int16_t speed);
 void agv_stop(motor_t motor);
+void agv_reset_all(motor_t motorA, motor_t motorB, motor_t motorC, motor_t motorD);
 void agv_stop_all(motor_t motorA, motor_t motorB, motor_t motorC, motor_t motorD);
 
 // Free move
@@ -69,5 +95,17 @@ void agv_move_cross_B(motor_t motorA, motor_t motorB, motor_t motorC, motor_t mo
 	- TIM_TypeDef*						: TIM Number
 */
 void agv_encoder_start(encoder_t encoder, TIM_HandleTypeDef* tim, TIM_TypeDef* tim_number);
+
+
+// Kinematics
+double agv_kinematic_Sx(int pos_A, int pos_B, int pos_C, int pos_D, double yaw);
+double agv_kinematic_Sy(int pos_A, int pos_B, int pos_C, int pos_D, double yaw);
+double agv_kinematic_St(int pos_A, int pos_B, int pos_C, int pos_D, double yaw);
+void agv_forward_kinematic(encoder_t encA, encoder_t encB, encoder_t encC, encoder_t encD, double yaw, kinematic_t kinematic);
+void agv_inverse_kinematic(double sx, double sy, double st, double yaw, motor_t motorA, motor_t motorB, motor_t motorC, motor_t motorD);
+double agv_calculate_encoder(encoder_t encoder);
+void agv_calculate_distance(kinematic_t agv);
+void agv_calculate_rotational_matrix(kinematic_t agv);
+void agv_speed_to_pwm(motor_t motor, double speed);
 
 #endif /* SRC_MOTOR_H_ */

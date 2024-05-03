@@ -6,8 +6,11 @@
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
 ../Core/Src/Aktuator.c \
+../Core/Src/BNO08X.c \
 ../Core/Src/Komunikasi.c \
 ../Core/Src/Motor.c \
+../Core/Src/PID_Driver.c \
+../Core/Src/communication_full.c \
 ../Core/Src/main.c \
 ../Core/Src/stm32f4xx_hal_msp.c \
 ../Core/Src/stm32f4xx_it.c \
@@ -17,8 +20,11 @@ C_SRCS += \
 
 OBJS += \
 ./Core/Src/Aktuator.o \
+./Core/Src/BNO08X.o \
 ./Core/Src/Komunikasi.o \
 ./Core/Src/Motor.o \
+./Core/Src/PID_Driver.o \
+./Core/Src/communication_full.o \
 ./Core/Src/main.o \
 ./Core/Src/stm32f4xx_hal_msp.o \
 ./Core/Src/stm32f4xx_it.o \
@@ -28,8 +34,11 @@ OBJS += \
 
 C_DEPS += \
 ./Core/Src/Aktuator.d \
+./Core/Src/BNO08X.d \
 ./Core/Src/Komunikasi.d \
 ./Core/Src/Motor.d \
+./Core/Src/PID_Driver.d \
+./Core/Src/communication_full.d \
 ./Core/Src/main.d \
 ./Core/Src/stm32f4xx_hal_msp.d \
 ./Core/Src/stm32f4xx_it.d \
@@ -45,7 +54,7 @@ Core/Src/%.o Core/Src/%.su Core/Src/%.cyclo: ../Core/Src/%.c Core/Src/subdir.mk
 clean: clean-Core-2f-Src
 
 clean-Core-2f-Src:
-	-$(RM) ./Core/Src/Aktuator.cyclo ./Core/Src/Aktuator.d ./Core/Src/Aktuator.o ./Core/Src/Aktuator.su ./Core/Src/Komunikasi.cyclo ./Core/Src/Komunikasi.d ./Core/Src/Komunikasi.o ./Core/Src/Komunikasi.su ./Core/Src/Motor.cyclo ./Core/Src/Motor.d ./Core/Src/Motor.o ./Core/Src/Motor.su ./Core/Src/main.cyclo ./Core/Src/main.d ./Core/Src/main.o ./Core/Src/main.su ./Core/Src/stm32f4xx_hal_msp.cyclo ./Core/Src/stm32f4xx_hal_msp.d ./Core/Src/stm32f4xx_hal_msp.o ./Core/Src/stm32f4xx_hal_msp.su ./Core/Src/stm32f4xx_it.cyclo ./Core/Src/stm32f4xx_it.d ./Core/Src/stm32f4xx_it.o ./Core/Src/stm32f4xx_it.su ./Core/Src/syscalls.cyclo ./Core/Src/syscalls.d ./Core/Src/syscalls.o ./Core/Src/syscalls.su ./Core/Src/sysmem.cyclo ./Core/Src/sysmem.d ./Core/Src/sysmem.o ./Core/Src/sysmem.su ./Core/Src/system_stm32f4xx.cyclo ./Core/Src/system_stm32f4xx.d ./Core/Src/system_stm32f4xx.o ./Core/Src/system_stm32f4xx.su
+	-$(RM) ./Core/Src/Aktuator.cyclo ./Core/Src/Aktuator.d ./Core/Src/Aktuator.o ./Core/Src/Aktuator.su ./Core/Src/BNO08X.cyclo ./Core/Src/BNO08X.d ./Core/Src/BNO08X.o ./Core/Src/BNO08X.su ./Core/Src/Komunikasi.cyclo ./Core/Src/Komunikasi.d ./Core/Src/Komunikasi.o ./Core/Src/Komunikasi.su ./Core/Src/Motor.cyclo ./Core/Src/Motor.d ./Core/Src/Motor.o ./Core/Src/Motor.su ./Core/Src/PID_Driver.cyclo ./Core/Src/PID_Driver.d ./Core/Src/PID_Driver.o ./Core/Src/PID_Driver.su ./Core/Src/communication_full.cyclo ./Core/Src/communication_full.d ./Core/Src/communication_full.o ./Core/Src/communication_full.su ./Core/Src/main.cyclo ./Core/Src/main.d ./Core/Src/main.o ./Core/Src/main.su ./Core/Src/stm32f4xx_hal_msp.cyclo ./Core/Src/stm32f4xx_hal_msp.d ./Core/Src/stm32f4xx_hal_msp.o ./Core/Src/stm32f4xx_hal_msp.su ./Core/Src/stm32f4xx_it.cyclo ./Core/Src/stm32f4xx_it.d ./Core/Src/stm32f4xx_it.o ./Core/Src/stm32f4xx_it.su ./Core/Src/syscalls.cyclo ./Core/Src/syscalls.d ./Core/Src/syscalls.o ./Core/Src/syscalls.su ./Core/Src/sysmem.cyclo ./Core/Src/sysmem.d ./Core/Src/sysmem.o ./Core/Src/sysmem.su ./Core/Src/system_stm32f4xx.cyclo ./Core/Src/system_stm32f4xx.d ./Core/Src/system_stm32f4xx.o ./Core/Src/system_stm32f4xx.su
 
 .PHONY: clean-Core-2f-Src
 
