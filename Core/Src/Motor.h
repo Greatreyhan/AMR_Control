@@ -11,6 +11,8 @@
 #include "main.h"
 #include <stdbool.h>
 
+#define DEG_TO_RAD(deg) ((deg) * M_PI / 180.0)
+
 typedef struct{
 	TIM_HandleTypeDef* 	tim;
 	TIM_TypeDef* 				tim_number;
@@ -103,6 +105,7 @@ double agv_kinematic_Sy(int pos_A, int pos_B, int pos_C, int pos_D, double yaw);
 double agv_kinematic_St(int pos_A, int pos_B, int pos_C, int pos_D, double yaw);
 void agv_forward_kinematic(encoder_t encA, encoder_t encB, encoder_t encC, encoder_t encD, double yaw, kinematic_t kinematic);
 void agv_inverse_kinematic(double sx, double sy, double st, double yaw, motor_t motorA, motor_t motorB, motor_t motorC, motor_t motorD);
+void agv_inverse_kinematic_basic(double sx, double sy, double st, motor_t motorA, motor_t motorB, motor_t motorC, motor_t motorD);
 double agv_calculate_encoder(encoder_t encoder);
 void agv_calculate_distance(kinematic_t agv);
 void agv_calculate_rotational_matrix(kinematic_t agv);

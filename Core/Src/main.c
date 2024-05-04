@@ -23,9 +23,10 @@
 /* USER CODE BEGIN Includes */
 #include "Motor.h"
 #include "Aktuator.h"
-#include "PID_driver.h"
+#include "PID_Driver.h"
 #include "BNO08X.h"
 #include "communication_full.h"
+#include <math.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -139,13 +140,17 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 		encoder_D.counts 		= (int16_t)encoder_D.counter;
 		encoder_D.position	= encoder_D.counts/4;
 	}
-	kinematic.S1 = abs(encoder_A.position);
-	kinematic.S2 = abs(encoder_B.position);
-	kinematic.S3 = abs(encoder_C.position);
-	kinematic.S4 = abs(encoder_D.position);
-	kinematic.Sx = agv_kinematic_Sx(encoder_A.position,encoder_B.position,encoder_C.position,encoder_D.position, 0);
-	kinematic.Sy = agv_kinematic_Sy(encoder_A.position,encoder_B.position,encoder_C.position,encoder_D.position, 0);
-	kinematic.St = agv_kinematic_St(encoder_A.position,encoder_B.position,encoder_C.position,encoder_D.position, 0);
+//	kinematic.S1 = abs(encoder_A.position);
+//	kinematic.S2 = abs(encoder_B.position);
+//	kinematic.S3 = abs(encoder_C.position);
+//	kinematic.S4 = abs(encoder_D.position);
+	kinematic.S1 = -encoder_A.position;
+	kinematic.S2 = -encoder_B.position;
+	kinematic.S3 = -encoder_C.position;
+	kinematic.S4 = -encoder_D.position;
+	kinematic.Sx = agv_kinematic_Sx(-encoder_A.position,-encoder_B.position,-encoder_C.position,-encoder_D.position, 0);
+	kinematic.Sy = agv_kinematic_Sy(-encoder_A.position,-encoder_B.position,-encoder_C.position,-encoder_D.position, 0);
+	kinematic.St = agv_kinematic_St(-encoder_A.position,-encoder_B.position,-encoder_C.position,-encoder_D.position, 0);
 }
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
@@ -156,6 +161,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 	}
 }
 
+double testNumber = 0;
 /* USER CODE END 0 */
 
 /**
@@ -199,16 +205,26 @@ int main(void)
 
   //+++++++++++++++++++++++++++++++++ MOTOR INITIALIZATION +++++++++++++++++++++++++++++//
   // Configuration 'Motor A'
-  motor_A.tim_R = &htim3;
-  motor_A.tim_L = &htim3;
-  motor_A.tim_number_R = TIM3;
-  motor_A.tim_number_L = TIM3;
-  motor_A.channel_R = 3;
-  motor_A.channel_L = 4;
-  motor_A.EN_PORT_R = ENR_A_GPIO_Port;
-  motor_A.EN_PORT_L = ENL_A_GPIO_Port;
-  motor_A.EN_PIN_R = ENR_A_Pin;
-  motor_A.EN_PIN_L = ENL_A_Pin;
+//  motor_A.tim_R = &htim3;
+//  motor_A.tim_L = &htim3;
+//  motor_A.tim_number_R = TIM3;
+//  motor_A.tim_number_L = TIM3;
+//  motor_A.channel_R = 3;
+//  motor_A.channel_L = 4;
+//  motor_A.EN_PORT_R = ENR_A_GPIO_Port;
+//  motor_A.EN_PORT_L = ENL_A_GPIO_Port;
+//  motor_A.EN_PIN_R = ENR_A_Pin;
+//  motor_A.EN_PIN_L = ENL_A_Pin;
+  motor_A.tim_R = &htim9;
+  motor_A.tim_L = &htim9;
+  motor_A.tim_number_R = TIM9;
+  motor_A.tim_number_L = TIM9;
+  motor_A.channel_R = 1;
+  motor_A.channel_L = 2;
+  motor_A.EN_PORT_R = ENR_C_GPIO_Port;
+  motor_A.EN_PORT_L = ENL_C_GPIO_Port;
+  motor_A.EN_PIN_R = ENR_C_Pin;
+  motor_A.EN_PIN_L = ENL_C_Pin;
 
   // Configuration 'Motor B'
   motor_B.tim_R = &htim3;
@@ -222,17 +238,17 @@ int main(void)
   motor_B.EN_PIN_R = ENR_B_Pin;
   motor_B.EN_PIN_L = ENL_B_Pin;
 
-  // Configuration 'Motor C
-  motor_C.tim_R = &htim9;
-  motor_C.tim_L = &htim9;
-  motor_C.tim_number_R = TIM9;
-  motor_C.tim_number_L = TIM9;
-  motor_C.channel_R = 1;
-  motor_C.channel_L = 2;
-  motor_C.EN_PORT_R = ENR_C_GPIO_Port;
-  motor_C.EN_PORT_L = ENL_C_GPIO_Port;
-  motor_C.EN_PIN_R = ENR_C_Pin;
-  motor_C.EN_PIN_L = ENL_C_Pin;
+  // Configuration 'Motor C'
+  motor_C.tim_R = &htim3;
+  motor_C.tim_L = &htim3;
+  motor_C.tim_number_R = TIM3;
+  motor_C.tim_number_L = TIM3;
+  motor_C.channel_R = 3;
+  motor_C.channel_L = 4;
+  motor_C.EN_PORT_R = ENR_A_GPIO_Port;
+  motor_C.EN_PORT_L = ENL_A_GPIO_Port;
+  motor_C.EN_PIN_R = ENR_A_Pin;
+  motor_C.EN_PIN_L = ENL_A_Pin;
 
   // Configuration 'Motor D'
   motor_D.tim_R = &htim10;
@@ -274,20 +290,20 @@ int main(void)
 
   //+++++++++++++++++++++++++++++++++ PID INITIALIZATION ++++++++++++++++++++++++++++++//
     // Y Axis
-    pid_vy.Kp = 2.3;			pid_vy.Ki = 1;				pid_vy.Kd = -0.0006;
-    pid_vy.limMax = 500; 		pid_vy.limMin = -500; 		pid_vy.limMaxInt = 5; 	pid_vy.limMinInt = -5;
+    pid_vy.Kp = 15;				pid_vy.Ki = 3;				pid_vy.Kd = -0.001;
+    pid_vy.limMax = 2000; 		pid_vy.limMin = -2000; 		pid_vy.limMaxInt = 5; 	pid_vy.limMinInt = -5;
     pid_vy.T_sample = 0.01;
     PIDController_Init(&pid_vy);
 
     // X Axis
-    pid_vx.Kp = 2.3;			pid_vx.Ki = 1;				pid_vx.Kd = -0.0006;
-    pid_vx.limMax = 500; 		pid_vx.limMin = -500; 		pid_vx.limMaxInt = 5; 	pid_vx.limMinInt = -5;
+    pid_vx.Kp = 15;				pid_vx.Ki = 3;				pid_vx.Kd = -0.001;
+    pid_vx.limMax = 2000; 		pid_vx.limMin = -2000; 		pid_vx.limMaxInt = 5; 	pid_vx.limMinInt = -5;
     pid_vx.T_sample = 0.01;
     PIDController_Init(&pid_vx);
 
     // T Axis
-    pid_vt.Kp = 2.3;			pid_vt.Ki = 1;				pid_vt.Kd = -0.0006;
-    pid_vt.limMax = 500; 		pid_vt.limMin = -500; 		pid_vt.limMaxInt = 5; 	pid_vt.limMinInt = -5;
+    pid_vt.Kp = 15;				pid_vt.Ki = 3;				pid_vt.Kd = -0.001;
+    pid_vt.limMax = 2000; 		pid_vt.limMin = -2000; 		pid_vt.limMaxInt = 5; 	pid_vt.limMinInt = -5;
     pid_vt.T_sample = 0.01;
     PIDController_Init(&pid_vt);
 
@@ -297,15 +313,59 @@ int main(void)
     pid_yaw.T_sample = 0.01;
     PIDController_Init(&pid_yaw);
 
-  // STOP ALL Motor
-  agv_stop_all(motor_A, motor_B, motor_C, motor_D);
+    // STOP ALL Motor
+	agv_stop_all(motor_A, motor_B, motor_C, motor_D);
 
+	//------------------------------ ONE STEP TEST --------------------------------------------------------//
+//	agv_inverse_kinematic(0, 500, 0, 0, motor_A, motor_B, motor_C, motor_D);
+//	HAL_Delay(2000);
+//	agv_reset_all(motor_A, motor_B, motor_C, motor_D);
+//	agv_stop_all(motor_A, motor_B, motor_C, motor_D);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  aktuator_up(aktuator);
+	  HAL_Delay(3000);
+//------------------------- TEST BENCH ----------------------------------------//
+//	  agv_reset_all(motor_A, motor_B, motor_C, motor_D);
+//	  agv_stop_all(motor_A, motor_B, motor_C, motor_D);
+//	  agv_speed_to_pwm(motor_A, 1000);
+//	  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);
+//	  HAL_Delay(2000);
+//	  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
+//	  agv_reset_all(motor_A, motor_B, motor_C, motor_D);
+//	  agv_stop_all(motor_A, motor_B, motor_C, motor_D);
+//	  agv_speed_to_pwm(motor_B, 1000);
+//	  HAL_Delay(2000);
+//	  agv_reset_all(motor_A, motor_B, motor_C, motor_D);
+//	  agv_stop_all(motor_A, motor_B, motor_C, motor_D);
+//	  agv_speed_to_pwm(motor_C, 1000);
+//	  HAL_Delay(2000);
+//	  agv_reset_all(motor_A, motor_B, motor_C, motor_D);
+//	  agv_stop_all(motor_A, motor_B, motor_C, motor_D);
+//	  agv_speed_to_pwm(motor_D, 1000);
+//	  HAL_Delay(2000);
+
+//----------------------------- TEST KINEMATIC --------------------------------------------//
+
+//	  agv_inverse_kinematic(500, 0, 0, 0, motor_A, motor_B, motor_C, motor_D);
+//	  HAL_Delay(2000);
+//	  agv_inverse_kinematic(-500, 0, 0, 0, motor_A, motor_B, motor_C, motor_D);
+//	  HAL_Delay(2000);
+//	  agv_inverse_kinematic(0, 500, 0, 0, motor_A, motor_B, motor_C, motor_D);
+//	  HAL_Delay(2000);
+//	  agv_inverse_kinematic(0, -500, 0, 0, motor_A, motor_B, motor_C, motor_D);
+//	  HAL_Delay(2000);
+//	  agv_inverse_kinematic(0, 0, 500, 0, motor_A, motor_B, motor_C, motor_D);
+//	  HAL_Delay(2000);
+//	  agv_inverse_kinematic(0, 0, -500, 0, motor_A, motor_B, motor_C, motor_D);
+//	  HAL_Delay(2000);
+
+//----------------------------- TEST POINT --------------------------------------------//
+//	  run_to_point_orientation(0,300,0,3);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

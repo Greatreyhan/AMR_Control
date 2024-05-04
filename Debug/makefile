@@ -60,8 +60,8 @@ all: main-build
 main-build: AMR_Control.elf secondary-outputs
 
 # Tool invocations
-AMR_Control.elf AMR_Control.map: $(OBJS) $(USER_OBJS) C:\Users\greatreyhan\Desktop\Tugas\ Akhir\STM32\Control\STM32F411CCUX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "AMR_Control.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\greatreyhan\Desktop\Tugas Akhir\STM32\Control\STM32F411CCUX_FLASH.ld" --specs=nosys.specs -Wl,-Map="AMR_Control.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+AMR_Control.elf AMR_Control.map: $(OBJS) $(USER_OBJS) /home/greatreyhan/Documents/Projects/Project_TA/STM32_CONTROL/STM32F411CCUX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "AMR_Control.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"/home/greatreyhan/Documents/Projects/Project_TA/STM32_CONTROL/STM32F411CCUX_FLASH.ld" --specs=nosys.specs -Wl,-Map="AMR_Control.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
