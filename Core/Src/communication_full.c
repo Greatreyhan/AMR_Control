@@ -20,6 +20,11 @@ static UART_HandleTypeDef* huart_ctrl;
 static uint8_t rxbuf_ctrl[3];
 static uint8_t rxbuf_get_ctrl[16];
 
+static uint8_t rxstart = 0;
+static uint8_t rx_container[16];
+
+static uint8_t rx_buf_holder[16];
+
 //******************************************** COMMUNICATION TO CONTROL **********************************************//
 
 void komunikasi_ctrl_init(UART_HandleTypeDef* uart_handler){
@@ -47,6 +52,18 @@ bool tx_ctrl_send_BNO08X(BNO08X_Typedef BNO08x){
 	if(HAL_UART_Transmit(huart_ctrl, steady, 16, TIMEOUT_SEND) == HAL_OK) return true;
 	else return false;
 }
+bool tx_ctrl_task_done(uint16_t step){
+	uint8_t task_done[] = {0xA5, 0x5A, 0x03, ((step >> 8) & 0XFF), ((step) & 0XFF), 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+	task_done[15] = checksum_ctrl_generator(task_done, 16);
+
+	if(HAL_UART_Transmit(huart_ctrl, task_done, 16, TIMEOUT_SEND) == HAL_OK) return true;
+	else return false;
+}
+
+bool tx_ctrl_forwading(uint8_t* msg){
+	if(HAL_UART_Transmit(huart_ctrl, msg, 16, TIMEOUT_SEND) == HAL_OK) return true;
+	else return false;
+}
 
 void rx_ctrl_start(void){
 	HAL_UART_Receive_DMA(huart_ctrl,rxbuf_ctrl, 3);
@@ -68,6 +85,8 @@ void rx_ctrl_feedback(feedback_ctrl_t* fed){
 }
 
 void rx_ctrl_get(com_ctrl_get_t* get){
+	HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+	memcpy(get->msg, rxbuf_get_ctrl, 16);
 	for(int i = 0; i < 16; i++){
 		if((rxbuf_get_ctrl[i] == 0xA5) && (rxbuf_get_ctrl[i+1] == 0x5A)){
 
@@ -78,14 +97,44 @@ void rx_ctrl_get(com_ctrl_get_t* get){
 				HAL_UART_Transmit(huart_ctrl, txbuf, 3, 1);
 			}
 
+			// Check for "Move" Instruction Given from Sensor
+			else if(rxbuf_get_ctrl[i+2] == 0x12){
+				if((rxbuf_get_ctrl[i+3] & 0x80)) get->x_pos = ((rxbuf_get_ctrl[i+3] << 8) | rxbuf_get_ctrl[i+4])-(65536);
+				else get->x_pos = (rxbuf_get_ctrl[i+3] << 8) | rxbuf_get_ctrl[i+4];
+
+				if((rxbuf_get_ctrl[i+5] & 0x80)) get->y_pos = ((rxbuf_get_ctrl[i+5] << 8) | rxbuf_get_ctrl[i+6])-(65536);
+				else get->y_pos = (rxbuf_get_ctrl[i+5] << 8) | rxbuf_get_ctrl[i+6];
+
+				if((rxbuf_get_ctrl[i+7] & 0x80)) get->orientation = ((rxbuf_get_ctrl[i+7] << 8) | rxbuf_get_ctrl[i+8])-(65536);
+				else get->orientation = (rxbuf_get_ctrl[i+7] << 8) | rxbuf_get_ctrl[i+8];
+
+				get->step = rxbuf_get_ctrl[i+10];
+
+				get->cmd = MOVE;
+
+			}
+
 			// Check for Position
 			else if(rxbuf_get_ctrl[i+2] == 0x02){
-				get->yaw = (rxbuf_get_ctrl[i+3] << 8) | rxbuf_get_ctrl[i+4];
-				get->pitch = (rxbuf_get_ctrl[i+5] << 8) | rxbuf_get_ctrl[i+6];
-				get->roll = (rxbuf_get_ctrl[i+7] << 8) | rxbuf_get_ctrl[i+8];
-				get->x_acceleration = (rxbuf_get_ctrl[i+9] << 8) | rxbuf_get_ctrl[i+10];
-				get->y_acceleration = (rxbuf_get_ctrl[i+11] << 8) | rxbuf_get_ctrl[i+12];
-				get->z_acceleration = (rxbuf_get_ctrl[i+13] << 8) | rxbuf_get_ctrl[i+14];
+
+				if((rxbuf_get_ctrl[i+3] & 0x80)) get->yaw = ((rxbuf_get_ctrl[i+3] << 8) | rxbuf_get_ctrl[i+4])-(65536);
+				else get->yaw = (rxbuf_get_ctrl[i+3] << 8) | rxbuf_get_ctrl[i+4];
+
+				if((rxbuf_get_ctrl[i+5] & 0x80)) get->pitch = ((rxbuf_get_ctrl[i+5] << 8) | rxbuf_get_ctrl[i+6])-(65536);
+				else get->pitch = (rxbuf_get_ctrl[i+5] << 8) | rxbuf_get_ctrl[i+6];
+
+				if((rxbuf_get_ctrl[i+7] & 0x80)) get->roll = ((rxbuf_get_ctrl[i+7] << 8) | rxbuf_get_ctrl[i+8])-(65536);
+				else get->roll = (rxbuf_get_ctrl[i+7] << 8) | rxbuf_get_ctrl[i+8];
+
+				if((rxbuf_get_ctrl[i+9] & 0x80)) get->x_acceleration = ((rxbuf_get_ctrl[i+9] << 8) | rxbuf_get_ctrl[i+10])-(65536);
+				else get->x_acceleration = (rxbuf_get_ctrl[i+9] << 8) | rxbuf_get_ctrl[i+10];
+
+				if((rxbuf_get_ctrl[i+11] & 0x80)) get->y_acceleration = ((rxbuf_get_ctrl[i+11] << 8) | rxbuf_get_ctrl[i+12])-(65536);
+				else get->y_acceleration = (rxbuf_get_ctrl[i+11] << 8) | rxbuf_get_ctrl[i+12];
+
+				if((rxbuf_get_ctrl[i+13] & 0x80)) get->z_acceleration = ((rxbuf_get_ctrl[i+13] << 8) | rxbuf_get_ctrl[i+14])-(65536);
+				else get->z_acceleration = (rxbuf_get_ctrl[i+13] << 8) | rxbuf_get_ctrl[i+14];
+
 				uint8_t txbuf[3] = {0xA5, 0x5A, 0x02};
 				HAL_UART_Transmit(huart_ctrl, txbuf, 3, 1);
 				get->cmd = 0x02;
@@ -189,7 +238,10 @@ void rx_pc_get(com_pc_get_t* get){
 				get->cmd = PING;
 
 				#ifdef	USE_FORWARDING
-				HAL_UART_Transmit(huart_ctrl, rxbuf_get_pc, 16, TIMEOUT_SEND);
+				for(int j=0; j<16; j++){
+					rx_buf_holder[j] = rxbuf_get_pc[i+j];
+				}
+				HAL_UART_Transmit(huart_ctrl, rx_buf_holder, 16, TIMEOUT_SEND);
 				#endif
 
 			}
@@ -201,19 +253,34 @@ void rx_pc_get(com_pc_get_t* get){
 				get->cmd = ROTATION;
 
 				#ifdef	USE_FORWARDING
-				HAL_UART_Transmit(huart_ctrl, rxbuf_get_pc, 16, TIMEOUT_SEND);
+				for(int j=0; j<16; j++){
+					rx_buf_holder[j] = rxbuf_get_pc[i+j];
+				}
+				HAL_UART_Transmit(huart_ctrl, rx_buf_holder, 16, TIMEOUT_SEND);
 				#endif
 			}
 
 			// Check for "Move" Instruction Given from Jetson Nano
 			else if(rxbuf_get_pc[i+2] == 0x12){
-				get->direction = (rxbuf_get_pc[i+3]);
-				get->speed = (rxbuf_get_pc[i+4]);
-				get->distance = (rxbuf_get_pc[i+5] << 8) | rxbuf_get_pc[i+6];
+				if((rxbuf_get_ctrl[i+3] & 0x80)) get->x_pos = ((rxbuf_get_ctrl[i+3] << 8) | rxbuf_get_ctrl[i+4])-(65536);
+				else get->x_pos = (rxbuf_get_ctrl[i+3] << 8) | rxbuf_get_ctrl[i+4];
+
+				if((rxbuf_get_ctrl[i+5] & 0x80)) get->y_pos = ((rxbuf_get_ctrl[i+5] << 8) | rxbuf_get_ctrl[i+6])-(65536);
+				else get->y_pos = (rxbuf_get_ctrl[i+5] << 8) | rxbuf_get_ctrl[i+6];
+
+				if((rxbuf_get_ctrl[i+7] & 0x80)) get->orientation = ((rxbuf_get_ctrl[i+7] << 8) | rxbuf_get_ctrl[i+8])-(65536);
+				else get->orientation = (rxbuf_get_ctrl[i+7] << 8) | rxbuf_get_ctrl[i+8];
+
+				if((rxbuf_get_ctrl[i+9] & 0x80)) get->orientation = ((rxbuf_get_ctrl[i+9] << 8) | rxbuf_get_ctrl[i+10])-(65536);
+				else get->step = (rxbuf_get_ctrl[i+9] << 8) | rxbuf_get_ctrl[i+10];
+
 				get->cmd = MOVE;
 
 				#ifdef	USE_FORWARDING
-				HAL_UART_Transmit(huart_ctrl, rxbuf_get_pc, 16, TIMEOUT_SEND);
+				for(int j=0; j<16; j++){
+					rx_buf_holder[j] = rxbuf_get_pc[i+j];
+				}
+				HAL_UART_Transmit(huart_ctrl, rx_buf_holder, 16, TIMEOUT_SEND);
 				#endif
 			}
 
@@ -225,7 +292,10 @@ void rx_pc_get(com_pc_get_t* get){
 				get->cmd = STANDBY;
 
 				#ifdef	USE_FORWARDING
-				HAL_UART_Transmit(huart_ctrl, rxbuf_get_pc, 16, TIMEOUT_SEND);
+				for(int j=0; j<16; j++){
+					rx_buf_holder[j] = rxbuf_get_pc[i+j];
+				}
+				HAL_UART_Transmit(huart_ctrl, rx_buf_holder, 16, TIMEOUT_SEND);
 				#endif
 			}
 

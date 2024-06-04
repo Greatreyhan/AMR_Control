@@ -58,6 +58,7 @@ TIM_HandleTypeDef htim10;
 TIM_HandleTypeDef htim11;
 
 UART_HandleTypeDef huart6;
+DMA_HandleTypeDef hdma_usart6_rx;
 
 /* USER CODE BEGIN PV */
 //---------------- MOTOR DECLARATION ---------------------//
@@ -85,12 +86,16 @@ BNO08X_Typedef BNO08X_sensor;
 feedback_ctrl_t feedback_control;
 
 // Typedef Communication PC
-com_pc_get_t message_from_pc;
+com_ctrl_get_t message_from_sensor;
+
+// Step Message
+uint16_t currentStep = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_DMA_Init(void);
 static void MX_TIM1_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_TIM3_Init(void);
@@ -105,7 +110,7 @@ static void MX_USART6_UART_Init(void);
 bool run_to_point(double sx, double sy, double st, double error);
 bool handle_heading(int16_t heading, int16_t error);
 bool run_to_point_orientation(double sx, double sy, uint16_t heading, double error);
-
+bool set_heading(int16_t heading, int16_t error);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -140,10 +145,6 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 		encoder_D.counts 		= (int16_t)encoder_D.counter;
 		encoder_D.position	= encoder_D.counts/4;
 	}
-//	kinematic.S1 = abs(encoder_A.position);
-//	kinematic.S2 = abs(encoder_B.position);
-//	kinematic.S3 = abs(encoder_C.position);
-//	kinematic.S4 = abs(encoder_D.position);
 	kinematic.S1 = -encoder_A.position;
 	kinematic.S2 = -encoder_B.position;
 	kinematic.S3 = -encoder_C.position;
@@ -152,16 +153,21 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 	kinematic.Sy = agv_kinematic_Sy(-encoder_A.position,-encoder_B.position,-encoder_C.position,-encoder_D.position, 0);
 	kinematic.St = agv_kinematic_St(-encoder_A.position,-encoder_B.position,-encoder_C.position,-encoder_D.position, 0);
 }
+
+// checker message id
+uint32_t msgid = 0;
+uint32_t current_msgid = 0;
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 	if(huart == &huart6){
+		msgid++;
+		rx_ctrl_get(&message_from_sensor);
 
 		// Callback Receive data from STM32 Control
 		//rx_ctrl_feedback(&feedback_control);
 	}
 }
 
-double testNumber = 0;
 /* USER CODE END 0 */
 
 /**
@@ -192,6 +198,7 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_TIM1_Init();
   MX_TIM2_Init();
   MX_TIM3_Init();
@@ -205,16 +212,6 @@ int main(void)
 
   //+++++++++++++++++++++++++++++++++ MOTOR INITIALIZATION +++++++++++++++++++++++++++++//
   // Configuration 'Motor A'
-//  motor_A.tim_R = &htim3;
-//  motor_A.tim_L = &htim3;
-//  motor_A.tim_number_R = TIM3;
-//  motor_A.tim_number_L = TIM3;
-//  motor_A.channel_R = 3;
-//  motor_A.channel_L = 4;
-//  motor_A.EN_PORT_R = ENR_A_GPIO_Port;
-//  motor_A.EN_PORT_L = ENL_A_GPIO_Port;
-//  motor_A.EN_PIN_R = ENR_A_Pin;
-//  motor_A.EN_PIN_L = ENL_A_Pin;
   motor_A.tim_R = &htim9;
   motor_A.tim_L = &htim9;
   motor_A.tim_number_R = TIM9;
@@ -285,8 +282,8 @@ int main(void)
   aktuator.PIN_IN4 = GPIO_PIN_15 ;
 
   //+++++++++++++++++++++++++++++++++ COM START +++++++++++++++++++++++++++++++++++++++++++//
-//  komunikasi_init(&huart6);
-//  rx_start_get();
+  komunikasi_ctrl_init(&huart6);
+  rx_ctrl_start_get();
 
   //+++++++++++++++++++++++++++++++++ PID INITIALIZATION ++++++++++++++++++++++++++++++//
     // Y Axis
@@ -308,8 +305,8 @@ int main(void)
     PIDController_Init(&pid_vt);
 
     // Yaw Direction
-    pid_yaw.Kp = 1;			pid_yaw.Ki = 1;				pid_yaw.Kd = -0.0006;
-    pid_yaw.limMax = 180; 	pid_yaw.limMin = -180; 		pid_yaw.limMaxInt = 5; 	pid_yaw.limMinInt = -5;
+    pid_yaw.Kp = 1;				pid_yaw.Ki = 0;					pid_yaw.Kd = 0;
+    pid_yaw.limMax = 20; 		pid_yaw.limMin = -20; 			pid_yaw.limMaxInt = 5; 	pid_yaw.limMinInt = -2;
     pid_yaw.T_sample = 0.01;
     PIDController_Init(&pid_yaw);
 
@@ -321,14 +318,37 @@ int main(void)
 //	HAL_Delay(2000);
 //	agv_reset_all(motor_A, motor_B, motor_C, motor_D);
 //	agv_stop_all(motor_A, motor_B, motor_C, motor_D);
+
+	while(1)
+	if(current_msgid < msgid){
+		double degree = 0;
+		if(message_from_sensor.yaw < 0){
+			degree = (2*18000 + message_from_sensor.yaw)/100;
+		}
+		else{
+			degree = (message_from_sensor.yaw)/100;
+		}
+
+		if(abs(degree - 90) < 10){
+			agv_reset_all(motor_A, motor_B, motor_C, motor_D);
+			agv_stop_all(motor_A, motor_B, motor_C, motor_D);
+		}
+		else{
+			PIDController_Update(&pid_yaw, 90, degree);
+			agv_reset_all(motor_A, motor_B, motor_C, motor_D);
+			agv_inverse_kinematic(0, 0, pid_yaw.out, 0, motor_A, motor_B, motor_C, motor_D);
+		}
+		current_msgid = msgid;
+
+	}
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  while (1)
+	while(1)
   {
-	  aktuator_up(aktuator);
-	  HAL_Delay(3000);
+
 //------------------------- TEST BENCH ----------------------------------------//
 //	  agv_reset_all(motor_A, motor_B, motor_C, motor_D);
 //	  agv_stop_all(motor_A, motor_B, motor_C, motor_D);
@@ -366,7 +386,27 @@ int main(void)
 
 //----------------------------- TEST POINT --------------------------------------------//
 //	  run_to_point_orientation(0,300,0,3);
-    /* USER CODE END WHILE */
+
+//----------------------------- TEST HEADING --------------------------------------------//
+//	  handle_heading(90,2);
+//	  BNO08X_relative_yaw();
+
+//		else{
+//			agv_reset_all(motor_A, motor_B, motor_C, motor_D);
+//			agv_stop_all(motor_A, motor_B, motor_C, motor_D);
+//		}
+//----------------------------- RUNNING COMMAND --------------------------------------------//
+//	  if(currentStep <= message_from_sensor.step){
+//		  if(run_to_point(message_from_sensor.x_pos*100,message_from_sensor.y_pos*100,message_from_sensor.orientation*100,5)){
+//
+//			// Sending to PC that Task is Done
+//			currentStep = message_from_sensor.step;
+//
+//			// Sending to PC that Task is Done
+//			tx_ctrl_task_done(currentStep);
+//		  }
+//	  }
+	/* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
   }
@@ -869,6 +909,22 @@ static void MX_USART6_UART_Init(void)
 }
 
 /**
+  * Enable DMA controller clock
+  */
+static void MX_DMA_Init(void)
+{
+
+  /* DMA controller clock enable */
+  __HAL_RCC_DMA2_CLK_ENABLE();
+
+  /* DMA interrupt init */
+  /* DMA2_Stream1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA2_Stream1_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Stream1_IRQn);
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -950,6 +1006,20 @@ bool handle_heading(int16_t heading, int16_t error){
 	}
 	else{
 		PIDController_Update(&pid_yaw, heading, relative_reading);
+		agv_reset_all(motor_A, motor_B, motor_C, motor_D);
+		agv_inverse_kinematic(0, 0, pid_yaw.out, 0, motor_A, motor_B, motor_C, motor_D);
+		return false;
+	}
+}
+
+bool set_heading(int16_t heading, int16_t error){
+	if(abs(message_from_sensor.yaw - heading) < error){
+		agv_reset_all(motor_A, motor_B, motor_C, motor_D);
+		agv_stop_all(motor_A, motor_B, motor_C, motor_D);
+		return true;
+	}
+	else{
+		PIDController_Update(&pid_yaw, heading, message_from_sensor.yaw);
 		agv_reset_all(motor_A, motor_B, motor_C, motor_D);
 		agv_inverse_kinematic(0, 0, pid_yaw.out, 0, motor_A, motor_B, motor_C, motor_D);
 		return false;

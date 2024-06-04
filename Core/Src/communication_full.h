@@ -10,8 +10,8 @@
 
 
 #include "main.h"
-#include <stdbool.h>
 #include "BNO08X.h"
+#include <stdbool.h>
 
 typedef enum{
 	FORWARD_DIR = 0x01U,
@@ -29,11 +29,11 @@ typedef enum{
 }command_type_t;
 
 typedef struct{
-	uint16_t temperature;
-	uint16_t humidity;
-	uint16_t current;
-	uint16_t voltage;
-	uint16_t loadcell;
+	int16_t temperature;
+	int16_t humidity;
+	int16_t current;
+	int16_t voltage;
+	int16_t loadcell;
 }sensor_package_t;
 
 typedef struct{
@@ -60,12 +60,13 @@ typedef struct{
 }feedback_ctrl_t;
 
 typedef struct{
-	uint16_t x_acceleration;
-	uint16_t y_acceleration;
-	uint16_t z_acceleration;
-	uint16_t roll;
-	uint16_t pitch;
-	uint16_t yaw;
+	int16_t x_pos;
+	int16_t y_pos;
+	int16_t orientation;
+	int16_t step;
+	int16_t roll;
+	int16_t pitch;
+	int16_t yaw;
 	move_direction_t direction;
 	uint8_t speed;
 	uint16_t distance;
@@ -73,12 +74,17 @@ typedef struct{
 }com_pc_get_t;
 
 typedef struct{
-	uint16_t x_acceleration;
-	uint16_t y_acceleration;
-	uint16_t z_acceleration;
-	uint16_t roll;
-	uint16_t pitch;
-	uint16_t yaw;
+	uint8_t msg[16];
+	int16_t x_pos;
+	int16_t y_pos;
+	int16_t orientation;
+	int16_t step;
+	int16_t x_acceleration;
+	int16_t y_acceleration;
+	int16_t z_acceleration;
+	int16_t roll;
+	int16_t pitch;
+	int16_t yaw;
 	move_direction_t direction;
 	uint8_t speed;
 	uint16_t distance;
@@ -89,6 +95,8 @@ void komunikasi_ctrl_init(UART_HandleTypeDef* uart_handler);
 uint8_t checksum_ctrl_generator(uint8_t* arr, uint8_t size);
 bool tx_ctrl_ping(void);
 bool tx_ctrl_send_BNO08X(BNO08X_Typedef BNO08x);
+bool tx_ctrl_task_done(uint16_t step);
+bool tx_ctrl_forwading(uint8_t* msg);
 void rx_ctrl_start(void);
 void rx_ctrl_start_get(void);
 void rx_ctrl_feedback(feedback_ctrl_t* fed);
