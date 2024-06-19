@@ -237,14 +237,12 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  agv_play_y(motor_A, motor_B, motor_C, motor_D, 100);
-	  HAL_Delay(3000);
-	  agv_stop_all(motor_A, motor_B, motor_C, motor_D);
-	  aktuator_up(aktuator);
-	  HAL_Delay(30000);
-	  agv_play_y(motor_A, motor_B, motor_C, motor_D, -100);
-	  HAL_Delay(3000);
-	  agv_stop_all(motor_A, motor_B, motor_C, motor_D);
+//	  agv_stop_all(motor_A, motor_B, motor_C, motor_D);
+//	  aktuator_up(aktuator);
+//	  HAL_Delay(30000);
+//	  agv_play_y(motor_A, motor_B, motor_C, motor_D, -100);
+//	  HAL_Delay(3000);
+//	  agv_stop_all(motor_A, motor_B, motor_C, motor_D);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
