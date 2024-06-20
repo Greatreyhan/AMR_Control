@@ -60,8 +60,16 @@ typedef struct{
 }feedback_ctrl_t;
 
 typedef struct{
+	uint8_t astar_coordinate_x[100];
+	uint8_t astar_coordinate_y[100];
+	uint8_t astar_id;
+	uint8_t astar_length;
 	int16_t x_pos;
 	int16_t y_pos;
+	int16_t t_pos;
+	int16_t x_vel;
+	int16_t y_vel;
+	int16_t t_vel;
 	int16_t orientation;
 	int16_t step;
 	int16_t roll;
@@ -74,9 +82,16 @@ typedef struct{
 }com_pc_get_t;
 
 typedef struct{
-	uint8_t msg[16];
+	uint8_t astar_coordinate_x[100];
+	uint8_t astar_coordinate_y[100];
+	uint8_t astar_id;
+	uint8_t astar_length;
 	int16_t x_pos;
 	int16_t y_pos;
+	int16_t t_pos;
+	int16_t x_vel;
+	int16_t y_vel;
+	int16_t t_vel;
 	int16_t orientation;
 	int16_t step;
 	int16_t x_acceleration;
@@ -91,12 +106,37 @@ typedef struct{
 	command_type_t cmd;
 }com_ctrl_get_t;
 
+typedef struct{
+	uint8_t astar_coordinate_x[100];
+	uint8_t astar_coordinate_y[100];
+	uint8_t astar_id;
+	uint8_t astar_length;
+	int16_t x_pos;
+	int16_t y_pos;
+	int16_t t_pos;
+	int16_t x_vel;
+	int16_t y_vel;
+	int16_t t_vel;
+	int16_t orientation;
+	int16_t step;
+	int16_t x_acceleration;
+	int16_t y_acceleration;
+	int16_t z_acceleration;
+	int16_t roll;
+	int16_t pitch;
+	int16_t yaw;
+	move_direction_t direction;
+	uint8_t speed;
+	uint16_t distance;
+	command_type_t cmd;
+}com_all_get_t;
 void komunikasi_ctrl_init(UART_HandleTypeDef* uart_handler);
 uint8_t checksum_ctrl_generator(uint8_t* arr, uint8_t size);
 bool tx_ctrl_ping(void);
 bool tx_ctrl_send_BNO08X(BNO08X_Typedef BNO08x);
 bool tx_ctrl_task_done(uint16_t step);
 bool tx_ctrl_forwading(uint8_t* msg);
+bool tx_ctrl_send_Kinematic(int16_t Sx, int16_t Sy, int16_t St, int16_t Vx, int16_t Vy, int16_t Vt);
 void rx_ctrl_start(void);
 void rx_ctrl_start_get(void);
 void rx_ctrl_feedback(feedback_ctrl_t* fed);

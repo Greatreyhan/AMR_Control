@@ -12,6 +12,7 @@
 #include <stdbool.h>
 
 #define DEG_TO_RAD(deg) ((deg) * M_PI / 180.0)
+#define PULSE_TO_DIST	44.856 // konstanta pulse encoder ke jarak linear u/ hall efect dlm satuan mm
 
 typedef struct{
 	TIM_HandleTypeDef* 	tim;
@@ -52,6 +53,7 @@ typedef struct{
 	double	V1;
 	double	V2;
 	double 	V3;
+	double 	V4;
 	double	Vx;
 	double	Vy;
 	double	Vt;

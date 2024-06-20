@@ -19,11 +19,10 @@ static uint8_t rxbuf_get_pc[16];
 static UART_HandleTypeDef* huart_ctrl;
 static uint8_t rxbuf_ctrl[3];
 static uint8_t rxbuf_get_ctrl[16];
-
-static uint8_t rxstart = 0;
-static uint8_t rx_container[16];
-
 static uint8_t rx_buf_holder[16];
+
+// ALL
+static uint8_t rxbuf_get_anywhere[16];
 
 //******************************************** COMMUNICATION TO CONTROL **********************************************//
 
@@ -64,7 +63,13 @@ bool tx_ctrl_forwading(uint8_t* msg){
 	if(HAL_UART_Transmit(huart_ctrl, msg, 16, TIMEOUT_SEND) == HAL_OK) return true;
 	else return false;
 }
+bool tx_ctrl_send_Kinematic(int16_t Sx, int16_t Sy, int16_t St, int16_t Vx, int16_t Vy, int16_t Vt){
+	uint8_t kinematic[] = {0xA5, 0x5A, 0x15, ((Sx >> 8) & 0XFF), ((Sx) & 0XFF), ((Sy >> 8) & 0XFF), ((Sy) & 0XFF), ((St >> 8) & 0XFF), ((St) & 0XFF), ((Vx >> 8) & 0XFF), ((Vx) & 0XFF), ((Vy >> 8) & 0XFF), ((Vy) & 0XFF), ((Vt >> 8) & 0XFF), ((Vt) & 0XFF), 0x00};
+	kinematic[15] = checksum_ctrl_generator(kinematic, 16);
 
+	if(HAL_UART_Transmit(huart_ctrl, kinematic, 16, TIMEOUT_SEND) == HAL_OK) return true;
+	else return false;
+}
 void rx_ctrl_start(void){
 	HAL_UART_Receive_DMA(huart_ctrl,rxbuf_ctrl, 3);
 }
@@ -73,28 +78,49 @@ void rx_ctrl_start_get(void){
 	HAL_UART_Receive_DMA(huart_ctrl,rxbuf_get_ctrl, 16);
 }
 
-void rx_ctrl_feedback(feedback_ctrl_t* fed){
-	if(rxbuf_ctrl[0] == 0xA5 && rxbuf_ctrl[1]  == 0x5A){
-		if(rxbuf_pc[2] == 0x01) fed->ping = true;
-		else if(rxbuf_pc[2] == 0x02) fed->standby = true;
-		else if(rxbuf_pc[2] == 0x03) fed->move = true;
-		else if(rxbuf_pc[2] == 0x04) fed->rotation = true;
-		else if(rxbuf_pc[2] == 0x05) fed->req = true;
-	}
-	HAL_UART_Receive_DMA(huart_ctrl,rxbuf_ctrl, 3);
-}
+//void rx_ctrl_feedback(feedback_ctrl_t* fed){
+//	if(rxbuf_ctrl[0] == 0xA5 && rxbuf_ctrl[1]  == 0x5A){
+//		if(rxbuf_pc[2] == 0x01) fed->ping = true;
+//		else if(rxbuf_pc[2] == 0x02) fed->standby = true;
+//		else if(rxbuf_pc[2] == 0x03) fed->move = true;
+//		else if(rxbuf_pc[2] == 0x04) fed->rotation = true;
+//		else if(rxbuf_pc[2] == 0x05) fed->req = true;
+//	}
+//	HAL_UART_Receive_DMA(huart_ctrl,rxbuf_ctrl, 3);
+//}
 
 void rx_ctrl_get(com_ctrl_get_t* get){
-	HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
-	memcpy(get->msg, rxbuf_get_ctrl, 16);
 	for(int i = 0; i < 16; i++){
-		if((rxbuf_get_ctrl[i] == 0xA5) && (rxbuf_get_ctrl[i+1] == 0x5A)){
+		if((rxbuf_get_ctrl[0] == 0xA5) && (rxbuf_get_ctrl[1] == 0x5A)){
 
 			// Check for ping
-			if(rxbuf_get_ctrl[i+2] == 0x01){
+			if(rxbuf_get_ctrl[2] == 0x01){
 				get->cmd = 0x01;
-				uint8_t txbuf[3] = {0xA5, 0x5A, 0x01};
-				HAL_UART_Transmit(huart_ctrl, txbuf, 3, 1);
+			}
+
+			// Check for "Move" Instruction Given from Sensor
+			else if(rxbuf_get_ctrl[2] == 0x15){
+				HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
+				if((rxbuf_get_ctrl[i+3] & 0x80)) get->x_pos = ((rxbuf_get_ctrl[i+3] << 8) | rxbuf_get_ctrl[i+4])-(65536);
+				else get->x_pos = (rxbuf_get_ctrl[i+3] << 8) | rxbuf_get_ctrl[i+4];
+
+				if((rxbuf_get_ctrl[i+5] & 0x80)) get->y_pos = ((rxbuf_get_ctrl[i+5] << 8) | rxbuf_get_ctrl[i+6])-(65536);
+				else get->y_pos = (rxbuf_get_ctrl[i+5] << 8) | rxbuf_get_ctrl[i+6];
+
+				if((rxbuf_get_ctrl[i+7] & 0x80)) get->t_pos = ((rxbuf_get_ctrl[i+7] << 8) | rxbuf_get_ctrl[i+8])-(65536);
+				else get->t_pos = (rxbuf_get_ctrl[i+7] << 8) | rxbuf_get_ctrl[i+8];
+
+				if((rxbuf_get_ctrl[i+9] & 0x80)) get->x_vel = ((rxbuf_get_ctrl[i+9] << 8) | rxbuf_get_ctrl[i+10])-(65536);
+				else get->x_vel = (rxbuf_get_ctrl[i+9] << 8) | rxbuf_get_ctrl[i+10];
+
+				if((rxbuf_get_ctrl[i+11] & 0x80)) get->y_vel = ((rxbuf_get_ctrl[i+11] << 8) | rxbuf_get_ctrl[i+12])-(65536);
+				else get->y_vel = (rxbuf_get_ctrl[i+11] << 8) | rxbuf_get_ctrl[i+12];
+
+				if((rxbuf_get_ctrl[i+13] & 0x80)) get->t_vel = ((rxbuf_get_ctrl[i+13] << 8) | rxbuf_get_ctrl[i+14])-(65536);
+				else get->t_vel = (rxbuf_get_ctrl[i+13] << 8) | rxbuf_get_ctrl[i+14];
+
+				get->cmd = STANDBY;
+
 			}
 
 			// Check for "Move" Instruction Given from Sensor
@@ -110,11 +136,11 @@ void rx_ctrl_get(com_ctrl_get_t* get){
 
 				get->step = rxbuf_get_ctrl[i+10];
 
-				get->cmd = MOVE;
+				get->cmd = STANDBY;
 
 			}
 
-			// Check for Position
+			// Check for BNO08X Sensor
 			else if(rxbuf_get_ctrl[i+2] == 0x02){
 
 				if((rxbuf_get_ctrl[i+3] & 0x80)) get->yaw = ((rxbuf_get_ctrl[i+3] << 8) | rxbuf_get_ctrl[i+4])-(65536);
@@ -135,11 +161,29 @@ void rx_ctrl_get(com_ctrl_get_t* get){
 				if((rxbuf_get_ctrl[i+13] & 0x80)) get->z_acceleration = ((rxbuf_get_ctrl[i+13] << 8) | rxbuf_get_ctrl[i+14])-(65536);
 				else get->z_acceleration = (rxbuf_get_ctrl[i+13] << 8) | rxbuf_get_ctrl[i+14];
 
-				uint8_t txbuf[3] = {0xA5, 0x5A, 0x02};
-				HAL_UART_Transmit(huart_ctrl, txbuf, 3, 1);
-				get->cmd = 0x02;
+				get->cmd = STANDBY;
 			}
 
+			// Check for Astar Sequence Given from Jetson Nano
+			else if(rxbuf_get_ctrl[i+2] == 0x13){
+				get->astar_id = (rxbuf_get_ctrl[i+3]);
+				get->astar_length = (rxbuf_get_ctrl[i+4]);
+				get->astar_coordinate_x[rxbuf_get_ctrl[i+3]*5-4] = (rxbuf_get_ctrl[i+5]);
+				get->astar_coordinate_y[rxbuf_get_ctrl[i+3]*5-4] = (rxbuf_get_ctrl[i+6]);
+				get->astar_coordinate_x[rxbuf_get_ctrl[i+3]*5-3] = (rxbuf_get_ctrl[i+7]);
+				get->astar_coordinate_y[rxbuf_get_ctrl[i+3]*5-3] = (rxbuf_get_ctrl[i+8]);
+				get->astar_coordinate_x[rxbuf_get_ctrl[i+3]*5-2] = (rxbuf_get_ctrl[i+9]);
+				get->astar_coordinate_y[rxbuf_get_ctrl[i+3]*5-2] = (rxbuf_get_ctrl[i+10]);
+				get->astar_coordinate_x[rxbuf_get_ctrl[i+3]*5-1] = (rxbuf_get_ctrl[i+11]);
+				get->astar_coordinate_y[rxbuf_get_ctrl[i+3]*5-1] = (rxbuf_get_ctrl[i+12]);
+				get->astar_coordinate_x[rxbuf_get_ctrl[i+3]*5-0] = (rxbuf_get_ctrl[i+13]);
+				get->astar_coordinate_y[rxbuf_get_ctrl[i+3]*5-0] = (rxbuf_get_ctrl[i+14]);
+				get->cmd = STANDBY;
+			}
+
+		}
+		else{
+			HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);
 		}
 	}
 	HAL_UART_Receive_DMA(huart_ctrl, rxbuf_get_ctrl, 16);
@@ -209,6 +253,13 @@ bool tx_pc_send_DWM(uint16_t Xpos, uint16_t YPos){
 	if(HAL_UART_Transmit(huart_pc, steady, 16, TIMEOUT_SEND) == HAL_OK) return true;
 	else return false;
 }
+bool tx_pc_send_Odometry(int16_t Sx, int16_t Sy, int16_t St, int16_t Vx, int16_t Vy, int16_t Vt){
+	uint8_t kinematic[] = {0xA5, 0x5A, 0x15, ((Sx >> 8) & 0XFF), ((Sx) & 0XFF), ((Sy >> 8) & 0XFF), ((Sy) & 0XFF), ((St >> 8) & 0XFF), ((St) & 0XFF), ((Vx >> 8) & 0XFF), ((Vx) & 0XFF), ((Vy >> 8) & 0XFF), ((Vy) & 0XFF), ((Vt >> 8) & 0XFF), ((Vt) & 0XFF), 0x00};
+	kinematic[15] = checksum_pc_generator(kinematic, 16);
+
+	if(HAL_UART_Transmit(huart_pc, kinematic, 16, TIMEOUT_SEND) == HAL_OK) return true;
+	else return false;
+}
 
 void rx_pc_start(void){
 	HAL_UART_Receive_DMA(huart_pc,rxbuf_pc, 3);
@@ -218,35 +269,23 @@ void rx_pc_start_get(void){
 	HAL_UART_Receive_DMA(huart_pc,rxbuf_get_pc, 16);
 }
 
-void rx_pc_feedback(feedback_pc_t* fed){
-	if(rxbuf_pc[0] == 0xA5 && rxbuf_pc[1]  == 0x5A){
-		if(rxbuf_pc[2] == 0x01) fed->ping = true;
-		else if(rxbuf_pc[2] == 0x02) fed->standby = true;
-		else if(rxbuf_pc[2] == 0x03) fed->move = true;
-		else if(rxbuf_pc[2] == 0x04) fed->rotation = true;
-		else if(rxbuf_pc[2] == 0x05) fed->req = true;
-	}
-	HAL_UART_Receive_DMA(huart_pc,rxbuf_pc, 3);
-}
+//void rx_pc_feedback(feedback_pc_t* fed){
+//	if(rxbuf_pc[0] == 0xA5 && rxbuf_pc[1]  == 0x5A){
+//		if(rxbuf_pc[2] == 0x01) fed->ping = true;
+//		else if(rxbuf_pc[2] == 0x02) fed->standby = true;
+//		else if(rxbuf_pc[2] == 0x03) fed->move = true;
+//		else if(rxbuf_pc[2] == 0x04) fed->rotation = true;
+//		else if(rxbuf_pc[2] == 0x05) fed->req = true;
+//	}
+//	HAL_UART_Receive_DMA(huart_pc,rxbuf_pc, 3);
+//}
 
 void rx_pc_get(com_pc_get_t* get){
 	for(int i = 0; i < 16; i++){
 		if((rxbuf_get_pc[i] == 0xA5) && (rxbuf_get_pc[i+1] == 0x5A)){
 
-			// Check for ping
-			if(rxbuf_get_pc[i+2] == 0x10){
-				get->cmd = PING;
-
-				#ifdef	USE_FORWARDING
-				for(int j=0; j<16; j++){
-					rx_buf_holder[j] = rxbuf_get_pc[i+j];
-				}
-				HAL_UART_Transmit(huart_ctrl, rx_buf_holder, 16, TIMEOUT_SEND);
-				#endif
-
-			}
 			// Check for Standby
-			else if(rxbuf_get_pc[i+2] == 0x11){
+			if(rxbuf_get_pc[i+2] == 0x11){
 				get->direction = (rxbuf_get_pc[i+3]);
 				get->speed = (rxbuf_get_pc[i+4]);
 				get->distance = (rxbuf_get_pc[i+5] << 8) | rxbuf_get_pc[i+6];
@@ -260,21 +299,53 @@ void rx_pc_get(com_pc_get_t* get){
 				#endif
 			}
 
+			// Check for "Move" Instruction Given from Sensor
+			else if(rxbuf_get_pc[i+2] == 0x15){
+
+				if((rxbuf_get_pc[i+3] & 0x80)) get->x_pos = ((rxbuf_get_pc[i+3] << 8) | rxbuf_get_pc[i+4])-(65536);
+				else get->x_pos = (rxbuf_get_pc[i+3] << 8) | rxbuf_get_pc[i+4];
+
+				if((rxbuf_get_pc[i+5] & 0x80)) get->y_pos = ((rxbuf_get_pc[i+5] << 8) | rxbuf_get_pc[i+6])-(65536);
+				else get->y_pos = (rxbuf_get_pc[i+5] << 8) | rxbuf_get_pc[i+6];
+
+				if((rxbuf_get_pc[i+7] & 0x80)) get->t_pos = ((rxbuf_get_pc[i+7] << 8) | rxbuf_get_pc[i+8])-(65536);
+				else get->t_pos = (rxbuf_get_pc[i+7] << 8) | rxbuf_get_pc[i+8];
+
+				if((rxbuf_get_pc[i+9] & 0x80)) get->x_vel = ((rxbuf_get_pc[i+9] << 8) | rxbuf_get_pc[i+10])-(65536);
+				else get->x_vel = (rxbuf_get_pc[i+9] << 8) | rxbuf_get_pc[i+10];
+
+				if((rxbuf_get_pc[i+11] & 0x80)) get->y_vel = ((rxbuf_get_pc[i+11] << 8) | rxbuf_get_pc[i+12])-(65536);
+				else get->y_vel = (rxbuf_get_pc[i+11] << 8) | rxbuf_get_pc[i+12];
+
+				if((rxbuf_get_pc[i+13] & 0x80)) get->t_vel = ((rxbuf_get_pc[i+13] << 8) | rxbuf_get_pc[i+14])-(65536);
+				else get->t_vel = (rxbuf_get_pc[i+13] << 8) | rxbuf_get_pc[i+14];
+
+				#ifdef	USE_FORWARDING
+				for(int j=0; j<16; j++){
+					rx_buf_holder[j] = rxbuf_get_pc[i+j];
+				}
+				HAL_UART_Transmit(huart_ctrl, rx_buf_holder, 16, TIMEOUT_SEND);
+				#endif
+
+				get->cmd = STANDBY;
+
+				}
+
 			// Check for "Move" Instruction Given from Jetson Nano
 			else if(rxbuf_get_pc[i+2] == 0x12){
-				if((rxbuf_get_ctrl[i+3] & 0x80)) get->x_pos = ((rxbuf_get_ctrl[i+3] << 8) | rxbuf_get_ctrl[i+4])-(65536);
-				else get->x_pos = (rxbuf_get_ctrl[i+3] << 8) | rxbuf_get_ctrl[i+4];
+				if((rxbuf_get_pc[i+3] & 0x80)) get->x_pos = ((rxbuf_get_pc[i+3] << 8) | rxbuf_get_pc[i+4])-(65536);
+				else get->x_pos = (rxbuf_get_pc[i+3] << 8) | rxbuf_get_pc[i+4];
 
-				if((rxbuf_get_ctrl[i+5] & 0x80)) get->y_pos = ((rxbuf_get_ctrl[i+5] << 8) | rxbuf_get_ctrl[i+6])-(65536);
-				else get->y_pos = (rxbuf_get_ctrl[i+5] << 8) | rxbuf_get_ctrl[i+6];
+				if((rxbuf_get_pc[i+5] & 0x80)) get->y_pos = ((rxbuf_get_pc[i+5] << 8) | rxbuf_get_pc[i+6])-(65536);
+				else get->y_pos = (rxbuf_get_pc[i+5] << 8) | rxbuf_get_pc[i+6];
 
-				if((rxbuf_get_ctrl[i+7] & 0x80)) get->orientation = ((rxbuf_get_ctrl[i+7] << 8) | rxbuf_get_ctrl[i+8])-(65536);
-				else get->orientation = (rxbuf_get_ctrl[i+7] << 8) | rxbuf_get_ctrl[i+8];
+				if((rxbuf_get_pc[i+7] & 0x80)) get->orientation = ((rxbuf_get_pc[i+7] << 8) | rxbuf_get_pc[i+8])-(65536);
+				else get->orientation = (rxbuf_get_pc[i+7] << 8) | rxbuf_get_pc[i+8];
 
-				if((rxbuf_get_ctrl[i+9] & 0x80)) get->orientation = ((rxbuf_get_ctrl[i+9] << 8) | rxbuf_get_ctrl[i+10])-(65536);
-				else get->step = (rxbuf_get_ctrl[i+9] << 8) | rxbuf_get_ctrl[i+10];
+				if((rxbuf_get_pc[i+9] & 0x80)) get->orientation = ((rxbuf_get_pc[i+9] << 8) | rxbuf_get_pc[i+10])-(65536);
+				else get->step = (rxbuf_get_pc[i+9] << 8) | rxbuf_get_pc[i+10];
 
-				get->cmd = MOVE;
+				get->cmd = STANDBY;
 
 				#ifdef	USE_FORWARDING
 				for(int j=0; j<16; j++){
@@ -284,8 +355,31 @@ void rx_pc_get(com_pc_get_t* get){
 				#endif
 			}
 
-			// Check for "Rotate" Instruction Given from Jetson Nano
+			// Check for Astar Sequence Given from Jetson Nano
 			else if(rxbuf_get_pc[i+2] == 0x13){
+				get->astar_id = (rxbuf_get_pc[i+3]);
+				get->astar_length = (rxbuf_get_pc[i+4]);
+				get->astar_coordinate_x[rxbuf_get_pc[i+3]*5-4] = (rxbuf_get_pc[i+5]);
+				get->astar_coordinate_y[rxbuf_get_pc[i+3]*5-4] = (rxbuf_get_pc[i+6]);
+				get->astar_coordinate_x[rxbuf_get_pc[i+3]*5-3] = (rxbuf_get_pc[i+7]);
+				get->astar_coordinate_y[rxbuf_get_pc[i+3]*5-3] = (rxbuf_get_pc[i+8]);
+				get->astar_coordinate_x[rxbuf_get_pc[i+3]*5-2] = (rxbuf_get_pc[i+9]);
+				get->astar_coordinate_y[rxbuf_get_pc[i+3]*5-2] = (rxbuf_get_pc[i+10]);
+				get->astar_coordinate_x[rxbuf_get_pc[i+3]*5-1] = (rxbuf_get_pc[i+11]);
+				get->astar_coordinate_y[rxbuf_get_pc[i+3]*5-1] = (rxbuf_get_pc[i+12]);
+				get->astar_coordinate_x[rxbuf_get_pc[i+3]*5-0] = (rxbuf_get_pc[i+13]);
+				get->astar_coordinate_y[rxbuf_get_pc[i+3]*5-0] = (rxbuf_get_pc[i+14]);
+
+				#ifdef	USE_FORWARDING
+				for(int j=0; j<16; j++){
+					rx_buf_holder[j] = rxbuf_get_pc[i+j];
+				}
+				HAL_UART_Transmit(huart_ctrl, rx_buf_holder, 16, TIMEOUT_SEND);
+				#endif
+			}
+
+			// Check for Change Parameter Given from Jetson Nano
+			else if(rxbuf_get_pc[i+2] == 0x14){
 				get->direction = (rxbuf_get_pc[i+3]);
 				get->speed = (rxbuf_get_pc[i+4]);
 				get->distance = (rxbuf_get_pc[i+5] << 8) | rxbuf_get_pc[i+6];
@@ -302,4 +396,103 @@ void rx_pc_get(com_pc_get_t* get){
 		}
 	}
 	HAL_UART_Receive_DMA(huart_pc, rxbuf_get_pc, 16);
+}
+
+// ---------------------------------- RECEIVER ANYWHERE --------------------------------//
+void rx_all_get(com_all_get_t* get){
+	for(int i = 0; i < 16; i++){
+		if((rxbuf_get_anywhere[0] == 0xA5) && (rxbuf_get_anywhere[1] == 0x5A)){
+			HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+
+			// Check for ping
+			if(rxbuf_get_anywhere[i+2] == 0x01){
+				get->cmd = 0x01;
+			}
+
+			// Check for "Move" Instruction Given from Sensor
+			else if(rxbuf_get_anywhere[i+2] == 0x15){
+
+				if((rxbuf_get_anywhere[i+3] & 0x80)) get->x_pos = ((rxbuf_get_anywhere[i+3] << 8) | rxbuf_get_anywhere[i+4])-(65536);
+				else get->x_pos = (rxbuf_get_anywhere[i+3] << 8) | rxbuf_get_anywhere[i+4];
+
+				if((rxbuf_get_anywhere[i+5] & 0x80)) get->y_pos = ((rxbuf_get_anywhere[i+5] << 8) | rxbuf_get_anywhere[i+6])-(65536);
+				else get->y_pos = (rxbuf_get_anywhere[i+5] << 8) | rxbuf_get_anywhere[i+6];
+
+				if((rxbuf_get_anywhere[i+7] & 0x80)) get->t_pos = ((rxbuf_get_anywhere[i+7] << 8) | rxbuf_get_anywhere[i+8])-(65536);
+				else get->t_pos = (rxbuf_get_anywhere[i+7] << 8) | rxbuf_get_anywhere[i+8];
+
+				if((rxbuf_get_anywhere[i+9] & 0x80)) get->x_vel = ((rxbuf_get_anywhere[i+9] << 8) | rxbuf_get_anywhere[i+10])-(65536);
+				else get->x_vel = (rxbuf_get_anywhere[i+9] << 8) | rxbuf_get_anywhere[i+10];
+
+				if((rxbuf_get_anywhere[i+11] & 0x80)) get->y_vel = ((rxbuf_get_anywhere[i+11] << 8) | rxbuf_get_anywhere[i+12])-(65536);
+				else get->y_vel = (rxbuf_get_anywhere[i+11] << 8) | rxbuf_get_anywhere[i+12];
+
+				if((rxbuf_get_anywhere[i+13] & 0x80)) get->t_vel = ((rxbuf_get_anywhere[i+13] << 8) | rxbuf_get_anywhere[i+14])-(65536);
+				else get->t_vel = (rxbuf_get_anywhere[i+13] << 8) | rxbuf_get_anywhere[i+14];
+
+				get->cmd = STANDBY;
+
+			}
+
+			// Check for "Move" Instruction Given from Sensor
+			else if(rxbuf_get_anywhere[i+2] == 0x12){
+				if((rxbuf_get_anywhere[i+3] & 0x80)) get->x_pos = ((rxbuf_get_anywhere[i+3] << 8) | rxbuf_get_anywhere[i+4])-(65536);
+				else get->x_pos = (rxbuf_get_anywhere[i+3] << 8) | rxbuf_get_anywhere[i+4];
+
+				if((rxbuf_get_anywhere[i+5] & 0x80)) get->y_pos = ((rxbuf_get_anywhere[i+5] << 8) | rxbuf_get_anywhere[i+6])-(65536);
+				else get->y_pos = (rxbuf_get_anywhere[i+5] << 8) | rxbuf_get_anywhere[i+6];
+
+				if((rxbuf_get_anywhere[i+7] & 0x80)) get->orientation = ((rxbuf_get_anywhere[i+7] << 8) | rxbuf_get_anywhere[i+8])-(65536);
+				else get->orientation = (rxbuf_get_anywhere[i+7] << 8) | rxbuf_get_anywhere[i+8];
+
+				get->step = rxbuf_get_anywhere[i+10];
+
+				get->cmd = STANDBY;
+
+			}
+
+			// Check for BNO08X Sensor
+			else if(rxbuf_get_anywhere[i+2] == 0x02){
+
+				if((rxbuf_get_anywhere[i+3] & 0x80)) get->yaw = ((rxbuf_get_anywhere[i+3] << 8) | rxbuf_get_anywhere[i+4])-(65536);
+				else get->yaw = (rxbuf_get_anywhere[i+3] << 8) | rxbuf_get_anywhere[i+4];
+
+				if((rxbuf_get_anywhere[i+5] & 0x80)) get->pitch = ((rxbuf_get_anywhere[i+5] << 8) | rxbuf_get_anywhere[i+6])-(65536);
+				else get->pitch = (rxbuf_get_anywhere[i+5] << 8) | rxbuf_get_anywhere[i+6];
+
+				if((rxbuf_get_anywhere[i+7] & 0x80)) get->roll = ((rxbuf_get_anywhere[i+7] << 8) | rxbuf_get_anywhere[i+8])-(65536);
+				else get->roll = (rxbuf_get_anywhere[i+7] << 8) | rxbuf_get_anywhere[i+8];
+
+				if((rxbuf_get_anywhere[i+9] & 0x80)) get->x_acceleration = ((rxbuf_get_anywhere[i+9] << 8) | rxbuf_get_anywhere[i+10])-(65536);
+				else get->x_acceleration = (rxbuf_get_anywhere[i+9] << 8) | rxbuf_get_anywhere[i+10];
+
+				if((rxbuf_get_anywhere[i+11] & 0x80)) get->y_acceleration = ((rxbuf_get_anywhere[i+11] << 8) | rxbuf_get_anywhere[i+12])-(65536);
+				else get->y_acceleration = (rxbuf_get_anywhere[i+11] << 8) | rxbuf_get_anywhere[i+12];
+
+				if((rxbuf_get_anywhere[i+13] & 0x80)) get->z_acceleration = ((rxbuf_get_anywhere[i+13] << 8) | rxbuf_get_anywhere[i+14])-(65536);
+				else get->z_acceleration = (rxbuf_get_anywhere[i+13] << 8) | rxbuf_get_anywhere[i+14];
+
+				get->cmd = STANDBY;
+			}
+
+			// Check for Astar Sequence Given from Jetson Nano
+			else if(rxbuf_get_anywhere[i+2] == 0x13){
+				get->astar_id = (rxbuf_get_anywhere[i+3]);
+				get->astar_length = (rxbuf_get_anywhere[i+4]);
+				get->astar_coordinate_x[rxbuf_get_anywhere[i+3]*5-4] = (rxbuf_get_anywhere[i+5]);
+				get->astar_coordinate_y[rxbuf_get_anywhere[i+3]*5-4] = (rxbuf_get_anywhere[i+6]);
+				get->astar_coordinate_x[rxbuf_get_anywhere[i+3]*5-3] = (rxbuf_get_anywhere[i+7]);
+				get->astar_coordinate_y[rxbuf_get_anywhere[i+3]*5-3] = (rxbuf_get_anywhere[i+8]);
+				get->astar_coordinate_x[rxbuf_get_anywhere[i+3]*5-2] = (rxbuf_get_anywhere[i+9]);
+				get->astar_coordinate_y[rxbuf_get_anywhere[i+3]*5-2] = (rxbuf_get_anywhere[i+10]);
+				get->astar_coordinate_x[rxbuf_get_anywhere[i+3]*5-1] = (rxbuf_get_anywhere[i+11]);
+				get->astar_coordinate_y[rxbuf_get_anywhere[i+3]*5-1] = (rxbuf_get_anywhere[i+12]);
+				get->astar_coordinate_x[rxbuf_get_anywhere[i+3]*5-0] = (rxbuf_get_anywhere[i+13]);
+				get->astar_coordinate_y[rxbuf_get_anywhere[i+3]*5-0] = (rxbuf_get_anywhere[i+14]);
+				get->cmd = STANDBY;
+			}
+
+		}
+	}
+	HAL_UART_Receive_DMA(huart_ctrl, rxbuf_get_anywhere, 16);
 }

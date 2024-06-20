@@ -1,6 +1,5 @@
 "./Core/Src/Aktuator.o"
 "./Core/Src/BNO08X.o"
-"./Core/Src/Komunikasi.o"
 "./Core/Src/Motor.o"
 "./Core/Src/PID_Driver.o"
 "./Core/Src/communication_full.o"

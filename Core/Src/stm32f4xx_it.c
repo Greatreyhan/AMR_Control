@@ -195,7 +195,7 @@ void SysTick_Handler(void)
   /* USER CODE BEGIN SysTick_IRQn 0 */
 	indexPos++;
 		if(indexPos == 500){
-			encoder_A.speed = ((encoder_A.position-encoder_A.old_position)*2);
+			encoder_A.speed = ((encoder_A.position-encoder_A.old_position)*2); // * 2 karena 500ms
 			encoder_A.old_position = encoder_A.position;
 
 			encoder_B.speed = ((encoder_B.position-encoder_B.old_position)*2);

@@ -8,7 +8,9 @@
 #include "Motor.h"
 #include <math.h>
 
-#define R_AMR	23
+// Berdasarkan jarak roda ke titik pusat dalam meter
+#define R_AMR	0.35
+//#define R_AMR	0.46
 
 void agv_run_motor(motor_t motor, int16_t speed){
 	HAL_GPIO_WritePin(motor.EN_PORT_R, motor.EN_PIN_R, GPIO_PIN_SET);
@@ -116,12 +118,12 @@ void agv_forward_kinematic(encoder_t encA, encoder_t encB, encoder_t encC, encod
 	kinematic.St = (((2*encA.position)/R_AMR)+((2*encB.position)/R_AMR)+((2*encC.position)/R_AMR)+((2*encD.position)/R_AMR))*0.5;
 }
 double agv_kinematic_Sx(int pos_A, int pos_B, int pos_C, int pos_D, double yaw){
-	double sy = ((-sin(DEG_TO_RAD(45+yaw))*pos_A) + (-sin(DEG_TO_RAD(135+yaw))*pos_B) + (-sin(DEG_TO_RAD(225+yaw))*pos_C) + (-sin(DEG_TO_RAD(315+yaw))*pos_D))*0.5;
-	return sy;
+	double sx = ((-sin(DEG_TO_RAD(45+yaw))*pos_A) + (-sin(DEG_TO_RAD(135+yaw))*pos_B) + (-sin(DEG_TO_RAD(225+yaw))*pos_C) + (-sin(DEG_TO_RAD(315+yaw))*pos_D))*0.5;
+	return sx;
 }
 double agv_kinematic_Sy(int pos_A, int pos_B, int pos_C, int pos_D, double yaw){
-	double sx = ((cos(DEG_TO_RAD(45+yaw))*pos_A) + (cos(DEG_TO_RAD(135+yaw))*pos_B) + (cos(DEG_TO_RAD(225+yaw))*pos_C) + (cos(DEG_TO_RAD(315+yaw))*pos_D))*0.5;
-	return sx;
+	double sy = ((cos(DEG_TO_RAD(45+yaw))*pos_A) + (cos(DEG_TO_RAD(135+yaw))*pos_B) + (cos(DEG_TO_RAD(225+yaw))*pos_C) + (cos(DEG_TO_RAD(315+yaw))*pos_D))*0.5;
+	return sy;
 }
 double agv_kinematic_St(int pos_A, int pos_B, int pos_C, int pos_D, double yaw){
 	double st = (((pos_A)/R_AMR)+((pos_B)/R_AMR)+((pos_C)/R_AMR)+((pos_D)/R_AMR))*0.5;
