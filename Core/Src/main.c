@@ -117,13 +117,6 @@ bool run_to_point_with_yaw(double sx, double sy, uint16_t heading, double error)
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-uint32_t vt = 0;
-int xdata = 0;
-int ydata = 0;
-int tdata = 0;
-uint8_t is_started = 0;
-
-
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 {
 	if(htim->Instance  == TIM1){
@@ -171,9 +164,8 @@ uint32_t current_msgid = 0;
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 	if(huart == &huart6){
-		msgid++;
 		rx_ctrl_get(&message_from_sensor);
-
+		msgid++;
 	}
 }
 
@@ -298,24 +290,24 @@ int main(void)
     // Y Axis
     pid_vy.Kp = 15;				pid_vy.Ki = 3;				pid_vy.Kd = -0.001;
     pid_vy.limMax = 1000; 		pid_vy.limMin = -1000; 		pid_vy.limMaxInt = 5; 	pid_vy.limMinInt = -5;
-    pid_vy.T_sample = 0.01;
+    pid_vy.T_sample = 0.1;
     PIDController_Init(&pid_vy);
 
     // X Axis
     pid_vx.Kp = 15;				pid_vx.Ki = 3;				pid_vx.Kd = -0.001;
     pid_vx.limMax = 1000; 		pid_vx.limMin = -1000; 		pid_vx.limMaxInt = 5; 	pid_vx.limMinInt = -5;
-    pid_vx.T_sample = 0.01;
+    pid_vx.T_sample = 0.1;
     PIDController_Init(&pid_vx);
 
     // T Axis
     pid_vt.Kp = 15;				pid_vt.Ki = 3;				pid_vt.Kd = -0.001;
     pid_vt.limMax = 1000; 		pid_vt.limMin = -1000; 		pid_vt.limMaxInt = 5; 	pid_vt.limMinInt = -5;
-    pid_vt.T_sample = 0.01;
+    pid_vt.T_sample = 0.1;
     PIDController_Init(&pid_vt);
 
     // Yaw Direction
-    pid_yaw.Kp = 40;			pid_yaw.Ki = 0;					pid_yaw.Kd = 0;
-    pid_yaw.limMax = 1000; 		pid_yaw.limMin = -1000; 		pid_yaw.limMaxInt = 5; 	pid_yaw.limMinInt = -2;
+    pid_yaw.Kp = 25;			pid_yaw.Ki = 3;				pid_yaw.Kd = -0.001;
+    pid_yaw.limMax = 1000; 		pid_yaw.limMin = -1000; 	pid_yaw.limMaxInt = 5; 	pid_yaw.limMinInt = -5;
     pid_yaw.T_sample = 0.1;
     PIDController_Init(&pid_yaw);
 
@@ -324,11 +316,19 @@ int main(void)
 	HAL_Delay(1000);
 
 	//------------------------------ ONE STEP TEST --------------------------------------------------------//
-//	agv_inverse_kinematic(0, 500, 0, 0, motor_A, motor_B, motor_C, motor_D);
-//	HAL_Delay(2000);
+//	agv_inverse_kinematic(0, 100, 0, 0, motor_A, motor_B, motor_C, motor_D);
+//	HAL_Delay(1000);
 //	agv_reset_all(motor_A, motor_B, motor_C, motor_D);
 //	agv_stop_all(motor_A, motor_B, motor_C, motor_D);
 
+	while(!run_to_point_with_yaw(0,5000,0,50));
+	HAL_Delay(1000);
+	while(!run_to_point_with_yaw(5000,5000,0,100));
+	HAL_Delay(1000);
+	while(!run_to_point_with_yaw(5000,0,0,50));
+	HAL_Delay(1000);
+	while(!run_to_point_with_yaw(0,0,0,50));
+	HAL_Delay(1000);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -338,21 +338,21 @@ int main(void)
 //------------------------- TEST BENCH ----------------------------------------//
 //	  agv_reset_all(motor_A, motor_B, motor_C, motor_D);
 //	  agv_stop_all(motor_A, motor_B, motor_C, motor_D);
-//	  agv_speed_to_pwm(motor_A, 1000);
+//	  agv_speed_to_pwm(motor_A, 2000);
 //	  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);
 //	  HAL_Delay(2000);
 //	  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
 //	  agv_reset_all(motor_A, motor_B, motor_C, motor_D);
 //	  agv_stop_all(motor_A, motor_B, motor_C, motor_D);
-//	  agv_speed_to_pwm(motor_B, 1000);
+//	  agv_speed_to_pwm(motor_B, 2000);
 //	  HAL_Delay(2000);
 //	  agv_reset_all(motor_A, motor_B, motor_C, motor_D);
 //	  agv_stop_all(motor_A, motor_B, motor_C, motor_D);
-//	  agv_speed_to_pwm(motor_C, 1000);
+//	  agv_speed_to_pwm(motor_C, 2000);
 //	  HAL_Delay(2000);
 //	  agv_reset_all(motor_A, motor_B, motor_C, motor_D);
 //	  agv_stop_all(motor_A, motor_B, motor_C, motor_D);
-//	  agv_speed_to_pwm(motor_D, 1000);
+//	  agv_speed_to_pwm(motor_D, 2000);
 //	  HAL_Delay(2000);
 
 //----------------------------- TEST KINEMATIC --------------------------------------------//
@@ -371,11 +371,11 @@ int main(void)
 //	  HAL_Delay(2000);
 
 //----------------------------- TEST POINT --------------------------------------------//
-//		run_to_point(0,100,0,5);
+//		run_to_point(0,5000,0,5);
 //	  run_to_point_orientation(0,300,0,3);
-//	run_to_point_with_yaw(0,500,0,3);
+//	run_to_point_with_yaw(0,15000,0,3);
 //		handle_heading(180,5);
-		handle_heading(90,5);
+//		handle_heading(90,5);
 //		HAL_Delay(100);
 
 //----------------------------- TEST HEADING --------------------------------------------//

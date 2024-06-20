@@ -9,7 +9,7 @@
 #include <math.h>
 
 // Berdasarkan jarak roda ke titik pusat dalam meter
-#define R_AMR	0.35
+#define R_AMR	0.50
 //#define R_AMR	0.46
 
 void agv_run_motor(motor_t motor, int16_t speed){
