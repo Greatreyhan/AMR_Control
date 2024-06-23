@@ -34,7 +34,7 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-
+#define SEND_DATA_INTERVAL	100
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -154,9 +154,12 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 	kinematic.Vx = agv_kinematic_Sx(-encoder_A.speed*PULSE_TO_DIST,-encoder_B.speed*PULSE_TO_DIST,-encoder_C.speed*PULSE_TO_DIST,-encoder_D.speed*PULSE_TO_DIST, 0);
 	kinematic.Vy = agv_kinematic_Sy(-encoder_A.speed*PULSE_TO_DIST,-encoder_B.speed*PULSE_TO_DIST,-encoder_C.speed*PULSE_TO_DIST,-encoder_D.speed*PULSE_TO_DIST, 0);
 	kinematic.Vt = agv_kinematic_St(-encoder_A.speed*PULSE_TO_DIST,-encoder_B.speed*PULSE_TO_DIST,-encoder_C.speed*PULSE_TO_DIST,-encoder_D.speed*PULSE_TO_DIST, 0);
-//	tx_ctrl_ping();
-//	tx_ctrl_send_Kinematic(kinematic.Sx,kinematic.Sy,kinematic.St,kinematic.Vx,kinematic.Vy,kinematic.Vt);
+
+	//	tx_ctrl_ping();
 }
+
+uint32_t CurrentTick = 0;
+uint32_t SendDataTick = 0;
 
 // checker message id
 uint32_t msgid = 0;
@@ -289,25 +292,25 @@ int main(void)
   //+++++++++++++++++++++++++++++++++ PID INITIALIZATION ++++++++++++++++++++++++++++++//
     // Y Axis
     pid_vy.Kp = 15;				pid_vy.Ki = 3;				pid_vy.Kd = -0.001;
-    pid_vy.limMax = 1000; 		pid_vy.limMin = -1000; 		pid_vy.limMaxInt = 5; 	pid_vy.limMinInt = -5;
+    pid_vy.limMax = 500; 		pid_vy.limMin = -500; 		pid_vy.limMaxInt = 1; 	pid_vy.limMinInt = -1;
     pid_vy.T_sample = 0.1;
     PIDController_Init(&pid_vy);
 
     // X Axis
     pid_vx.Kp = 15;				pid_vx.Ki = 3;				pid_vx.Kd = -0.001;
-    pid_vx.limMax = 1000; 		pid_vx.limMin = -1000; 		pid_vx.limMaxInt = 5; 	pid_vx.limMinInt = -5;
+    pid_vx.limMax = 500; 		pid_vx.limMin = -500; 		pid_vx.limMaxInt = 1; 	pid_vx.limMinInt = -1;
     pid_vx.T_sample = 0.1;
     PIDController_Init(&pid_vx);
 
     // T Axis
     pid_vt.Kp = 15;				pid_vt.Ki = 3;				pid_vt.Kd = -0.001;
-    pid_vt.limMax = 1000; 		pid_vt.limMin = -1000; 		pid_vt.limMaxInt = 5; 	pid_vt.limMinInt = -5;
+    pid_vt.limMax = 500; 		pid_vt.limMin = -500; 		pid_vt.limMaxInt = 1; 	pid_vt.limMinInt = -1;
     pid_vt.T_sample = 0.1;
     PIDController_Init(&pid_vt);
 
     // Yaw Direction
     pid_yaw.Kp = 25;			pid_yaw.Ki = 3;				pid_yaw.Kd = -0.001;
-    pid_yaw.limMax = 1000; 		pid_yaw.limMin = -1000; 	pid_yaw.limMaxInt = 5; 	pid_yaw.limMinInt = -5;
+    pid_yaw.limMax = 500; 		pid_yaw.limMin = -500; 		pid_yaw.limMaxInt = 1; 	pid_yaw.limMinInt = -1;
     pid_yaw.T_sample = 0.1;
     PIDController_Init(&pid_yaw);
 
@@ -321,27 +324,40 @@ int main(void)
 //	agv_reset_all(motor_A, motor_B, motor_C, motor_D);
 //	agv_stop_all(motor_A, motor_B, motor_C, motor_D);
 
-	while(!run_to_point_with_yaw(0,5000,0,50));
+	while(!run_to_point_with_yaw(0,5000,0,50)){
+	}
 	HAL_Delay(1000);
-	while(!run_to_point_with_yaw(5000,5000,0,100));
+	while(!run_to_point_with_yaw(5000,5000,0,50)){
+	}
 	HAL_Delay(1000);
-	while(!run_to_point_with_yaw(5000,0,0,50));
+	while(!run_to_point_with_yaw(5000,0,0,50)){
+	}
 	HAL_Delay(1000);
-	while(!run_to_point_with_yaw(0,0,0,50));
+	while(!run_to_point_with_yaw(0,0,0,50)){
+	}
 	HAL_Delay(1000);
+//	aktuator_down(aktuator);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 	while(1)
   {
+//	CurrentTick = HAL_GetTick();
+//
+//	if(CurrentTick-SendDataTick > SEND_DATA_INTERVAL){
+//		tx_ctrl_send_Kinematic(kinematic.Sx,kinematic.Sy,kinematic.St,kinematic.Vx,kinematic.Vy,kinematic.Vt);
+//		SendDataTick = CurrentTick;
+//	}
+
+//	run_to_point_with_yaw(0,5000,0,50);
+//		tx_ctrl_send_Kinematic(kinematic.Sx,kinematic.Sy,kinematic.St,kinematic.Vx,kinematic.Vy,kinematic.Vt);
+//		tx_ctrl_send_Kinematic(kinematic.Sx,kinematic.Sy,kinematic.St,kinematic.Vx,kinematic.Vy,kinematic.Vt);
 //------------------------- TEST BENCH ----------------------------------------//
 //	  agv_reset_all(motor_A, motor_B, motor_C, motor_D);
 //	  agv_stop_all(motor_A, motor_B, motor_C, motor_D);
 //	  agv_speed_to_pwm(motor_A, 2000);
-//	  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);
 //	  HAL_Delay(2000);
-//	  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
 //	  agv_reset_all(motor_A, motor_B, motor_C, motor_D);
 //	  agv_stop_all(motor_A, motor_B, motor_C, motor_D);
 //	  agv_speed_to_pwm(motor_B, 2000);
@@ -396,10 +412,10 @@ int main(void)
 //		  if(run_to_point(message_from_sensor.astar_coordinate_x[message_from_sensor.astar_length-currentStep]*100,message_from_sensor.astar_coordinate_y[message_from_sensor.astar_length-currentStep]*100,message_from_sensor.orientation*100,5)){
 //
 //			// Add current Step value
-//			currentStep = currentStep++;
+//			currentStep = currentStep+1;
 //
 //			// Sending to PC that Task is Done
-//			tx_ctrl_task_done(currentStep);
+////			tx_ctrl_task_done(currentStep);
 //		  }
 //	  }
 	/* USER CODE END WHILE */
