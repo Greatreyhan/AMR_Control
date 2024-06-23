@@ -130,6 +130,20 @@ double agv_kinematic_St(int pos_A, int pos_B, int pos_C, int pos_D, double yaw){
 	return st;
 }
 
+double agv_kinematic_ext_Sx(int pos_A, int pos_B, int pos_C, int pos_D, double yaw){
+	double sx = pos_D;
+	return sx;
+}
+
+double agv_kinematic_ext_Sy(int pos_A, int pos_B, int pos_C, int pos_D, double yaw){
+	double sy = pos_C;
+	return sy;
+}
+double agv_kinematic_ext_St(int pos_A, int pos_B, int pos_C, int pos_D, double yaw){
+	double st = ((pos_C/pos_D)* 3.14 / 180.0);
+	return st;
+}
+
 ///////////////////////////////////////////// INVERSE KINEMATICS ///////////////////////////////////////////////////
 
 void agv_inverse_kinematic(double sx, double sy, double st, double yaw, motor_t motorA, motor_t motorB, motor_t motorC, motor_t motorD){

@@ -7,7 +7,10 @@
 ../Core/Src/Motor.c:120:8:agv_kinematic_Sx	1
 ../Core/Src/Motor.c:124:8:agv_kinematic_Sy	1
 ../Core/Src/Motor.c:128:8:agv_kinematic_St	1
-../Core/Src/Motor.c:135:6:agv_inverse_kinematic	1
-../Core/Src/Motor.c:147:6:agv_inverse_kinematic_basic	1
-../Core/Src/Motor.c:159:8:agv_calculate_encoder	1
-../Core/Src/Motor.c:165:6:agv_speed_to_pwm	2
+../Core/Src/Motor.c:133:8:agv_kinematic_ext_Sx	1
+../Core/Src/Motor.c:138:8:agv_kinematic_ext_Sy	1
+../Core/Src/Motor.c:142:8:agv_kinematic_ext_St	1
+../Core/Src/Motor.c:149:6:agv_inverse_kinematic	1
+../Core/Src/Motor.c:161:6:agv_inverse_kinematic_basic	1
+../Core/Src/Motor.c:173:8:agv_calculate_encoder	1
+../Core/Src/Motor.c:179:6:agv_speed_to_pwm	2

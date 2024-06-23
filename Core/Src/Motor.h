@@ -12,8 +12,8 @@
 #include <stdbool.h>
 
 #define DEG_TO_RAD(deg) ((deg) * M_PI / 180.0)
-#define PULSE_TO_DIST	44.856 // konstanta pulse encoder ke jarak linear u/ hall efect dlm satuan mm
-
+//#define PULSE_TO_DIST	44.856 // konstanta pulse encoder ke jarak linear u/ hall efect dlm satuan mm
+#define PULSE_TO_DIST 	0.3037 // Untuk encoder Eksternal
 typedef struct{
 	TIM_HandleTypeDef* 	tim;
 	TIM_TypeDef* 				tim_number;
@@ -113,4 +113,8 @@ void agv_calculate_distance(kinematic_t agv);
 void agv_calculate_rotational_matrix(kinematic_t agv);
 void agv_speed_to_pwm(motor_t motor, double speed);
 
+// Using External Encoder
+double agv_kinematic_ext_Sx(int pos_A, int pos_B, int pos_C, int pos_D, double yaw);
+double agv_kinematic_ext_Sy(int pos_A, int pos_B, int pos_C, int pos_D, double yaw);
+double agv_kinematic_ext_St(int pos_A, int pos_B, int pos_C, int pos_D, double yaw);
 #endif /* SRC_MOTOR_H_ */

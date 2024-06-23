@@ -140,20 +140,40 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 		encoder_D.position	= encoder_D.counts/4;
 	}
 	// jarak dalam satuan mm dan mm/s
+//	kinematic.S1 = -encoder_A.position*PULSE_TO_DIST;
+//	kinematic.S2 = -encoder_B.position*PULSE_TO_DIST;
+//	kinematic.S3 = -encoder_C.position*PULSE_TO_DIST;
+//	kinematic.S4 = -encoder_D.position*PULSE_TO_DIST;
+//	kinematic.V1 = -encoder_A.speed*PULSE_TO_DIST;
+//	kinematic.V2 = -encoder_B.speed*PULSE_TO_DIST;
+//	kinematic.V3 = -encoder_C.speed*PULSE_TO_DIST;
+//	kinematic.V4 = -encoder_D.speed*PULSE_TO_DIST;
+
+	// Encoder Eksternal
 	kinematic.S1 = -encoder_A.position*PULSE_TO_DIST;
 	kinematic.S2 = -encoder_B.position*PULSE_TO_DIST;
-	kinematic.S3 = -encoder_C.position*PULSE_TO_DIST;
+	kinematic.S3 = encoder_C.position*PULSE_TO_DIST;
 	kinematic.S4 = -encoder_D.position*PULSE_TO_DIST;
 	kinematic.V1 = -encoder_A.speed*PULSE_TO_DIST;
 	kinematic.V2 = -encoder_B.speed*PULSE_TO_DIST;
-	kinematic.V3 = -encoder_C.speed*PULSE_TO_DIST;
+	kinematic.V3 = encoder_C.speed*PULSE_TO_DIST;
 	kinematic.V4 = -encoder_D.speed*PULSE_TO_DIST;
-	kinematic.Sx = agv_kinematic_Sx(-encoder_A.position*PULSE_TO_DIST,-encoder_B.position*PULSE_TO_DIST,-encoder_C.position*PULSE_TO_DIST,-encoder_D.position*PULSE_TO_DIST, 0);
-	kinematic.Sy = agv_kinematic_Sy(-encoder_A.position*PULSE_TO_DIST,-encoder_B.position*PULSE_TO_DIST,-encoder_C.position*PULSE_TO_DIST,-encoder_D.position*PULSE_TO_DIST, 0);
-	kinematic.St = agv_kinematic_St(-encoder_A.position*PULSE_TO_DIST,-encoder_B.position*PULSE_TO_DIST,-encoder_C.position*PULSE_TO_DIST,-encoder_D.position*PULSE_TO_DIST, 0);
-	kinematic.Vx = agv_kinematic_Sx(-encoder_A.speed*PULSE_TO_DIST,-encoder_B.speed*PULSE_TO_DIST,-encoder_C.speed*PULSE_TO_DIST,-encoder_D.speed*PULSE_TO_DIST, 0);
-	kinematic.Vy = agv_kinematic_Sy(-encoder_A.speed*PULSE_TO_DIST,-encoder_B.speed*PULSE_TO_DIST,-encoder_C.speed*PULSE_TO_DIST,-encoder_D.speed*PULSE_TO_DIST, 0);
-	kinematic.Vt = agv_kinematic_St(-encoder_A.speed*PULSE_TO_DIST,-encoder_B.speed*PULSE_TO_DIST,-encoder_C.speed*PULSE_TO_DIST,-encoder_D.speed*PULSE_TO_DIST, 0);
+
+	// Internal Encoder
+//	kinematic.Sx = agv_kinematic_Sx(-encoder_A.position*PULSE_TO_DIST,-encoder_B.position*PULSE_TO_DIST,-encoder_C.position*PULSE_TO_DIST,-encoder_D.position*PULSE_TO_DIST, 0);
+//	kinematic.Sy = agv_kinematic_Sy(-encoder_A.position*PULSE_TO_DIST,-encoder_B.position*PULSE_TO_DIST,-encoder_C.position*PULSE_TO_DIST,-encoder_D.position*PULSE_TO_DIST, 0);
+//	kinematic.St = agv_kinematic_St(-encoder_A.position*PULSE_TO_DIST,-encoder_B.position*PULSE_TO_DIST,-encoder_C.position*PULSE_TO_DIST,-encoder_D.position*PULSE_TO_DIST, 0);
+//	kinematic.Vx = agv_kinematic_Sx(-encoder_A.speed*PULSE_TO_DIST,-encoder_B.speed*PULSE_TO_DIST,-encoder_C.speed*PULSE_TO_DIST,-encoder_D.speed*PULSE_TO_DIST, 0);
+//	kinematic.Vy = agv_kinematic_Sy(-encoder_A.speed*PULSE_TO_DIST,-encoder_B.speed*PULSE_TO_DIST,-encoder_C.speed*PULSE_TO_DIST,-encoder_D.speed*PULSE_TO_DIST, 0);
+//	kinematic.Vt = agv_kinematic_St(-encoder_A.speed*PULSE_TO_DIST,-encoder_B.speed*PULSE_TO_DIST,-encoder_C.speed*PULSE_TO_DIST,-encoder_D.speed*PULSE_TO_DIST, 0);
+
+	// External Encoder (Nomor 3->x dan 4->y)
+	kinematic.Sx = agv_kinematic_ext_Sx(-encoder_A.position*PULSE_TO_DIST,-encoder_B.position*PULSE_TO_DIST,encoder_C.position*PULSE_TO_DIST,-encoder_D.position*PULSE_TO_DIST, 0);
+	kinematic.Sy = agv_kinematic_ext_Sy(-encoder_A.position*PULSE_TO_DIST,-encoder_B.position*PULSE_TO_DIST,encoder_C.position*PULSE_TO_DIST,-encoder_D.position*PULSE_TO_DIST, 0);
+//	kinematic.St = agv_kinematic_ext_St(-encoder_A.position*PULSE_TO_DIST,-encoder_B.position*PULSE_TO_DIST,encoder_C.position*PULSE_TO_DIST,encoder_D.position*PULSE_TO_DIST, 0);
+	kinematic.Vx = agv_kinematic_ext_Sx(-encoder_A.speed*PULSE_TO_DIST,-encoder_B.speed*PULSE_TO_DIST,encoder_C.speed*PULSE_TO_DIST,-encoder_D.speed*PULSE_TO_DIST, 0);
+	kinematic.Vy = agv_kinematic_ext_Sy(-encoder_A.speed*PULSE_TO_DIST,-encoder_B.speed*PULSE_TO_DIST,encoder_C.speed*PULSE_TO_DIST,-encoder_D.speed*PULSE_TO_DIST, 0);
+//	kinematic.Vt = agv_kinematic_ext_St(-encoder_A.speed*PULSE_TO_DIST,-encoder_B.speed*PULSE_TO_DIST,encoder_C.speed*PULSE_TO_DIST,encoder_D.speed*PULSE_TO_DIST, 0);
 
 	//	tx_ctrl_ping();
 }
@@ -324,18 +344,18 @@ int main(void)
 //	agv_reset_all(motor_A, motor_B, motor_C, motor_D);
 //	agv_stop_all(motor_A, motor_B, motor_C, motor_D);
 
-	while(!run_to_point_with_yaw(0,5000,0,50)){
-	}
-	HAL_Delay(1000);
-	while(!run_to_point_with_yaw(5000,5000,0,50)){
-	}
-	HAL_Delay(1000);
-	while(!run_to_point_with_yaw(5000,0,0,50)){
-	}
-	HAL_Delay(1000);
-	while(!run_to_point_with_yaw(0,0,0,50)){
-	}
-	HAL_Delay(1000);
+//	while(!run_to_point_with_yaw(0,500,0,50)){
+//	}
+//	HAL_Delay(1000);
+//	while(!run_to_point_with_yaw(500,500,0,50)){
+//	}
+//	HAL_Delay(1000);
+//	while(!run_to_point_with_yaw(500,0,0,50)){
+//	}
+//	HAL_Delay(1000);
+//	while(!run_to_point_with_yaw(0,0,0,50)){
+//	}
+//	HAL_Delay(1000);
 //	aktuator_down(aktuator);
   /* USER CODE END 2 */
 
@@ -387,9 +407,9 @@ int main(void)
 //	  HAL_Delay(2000);
 
 //----------------------------- TEST POINT --------------------------------------------//
-//		run_to_point(0,5000,0,5);
+//		run_to_point(0,500,0,5);
 //	  run_to_point_orientation(0,300,0,3);
-//	run_to_point_with_yaw(0,15000,0,3);
+	run_to_point_with_yaw(0,1000,0,3);
 //		handle_heading(180,5);
 //		handle_heading(90,5);
 //		HAL_Delay(100);
@@ -418,7 +438,7 @@ int main(void)
 ////			tx_ctrl_task_done(currentStep);
 //		  }
 //	  }
-	/* USER CODE END WHILE */
+    /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
   }
