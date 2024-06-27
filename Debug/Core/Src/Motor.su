@@ -9,7 +9,7 @@
 ../Core/Src/Motor.c:128:8:agv_kinematic_St	48	static
 ../Core/Src/Motor.c:133:8:agv_kinematic_ext_Sx	40	static
 ../Core/Src/Motor.c:138:8:agv_kinematic_ext_Sy	40	static
-../Core/Src/Motor.c:142:8:agv_kinematic_ext_St	40	static
+../Core/Src/Motor.c:142:8:agv_kinematic_ext_St	56	static
 ../Core/Src/Motor.c:149:6:agv_inverse_kinematic	328	static
 ../Core/Src/Motor.c:161:6:agv_inverse_kinematic_basic	296	static
 ../Core/Src/Motor.c:173:8:agv_calculate_encoder	24	static

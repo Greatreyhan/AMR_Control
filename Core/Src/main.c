@@ -82,14 +82,16 @@ PIDController pid_yaw;
 //---------------- BNO08X DECLARATION ---------------------//
 BNO08X_Typedef BNO08X_sensor;
 
-// Typedef Communication STM32Control
-feedback_ctrl_t feedback_control;
-
 // Typedef Communication PC
 com_ctrl_get_t message_from_sensor;
 
 // Step Message
 uint16_t currentStep = 0;
+
+// Offset Yaw
+int16_t Yaw_Init = 0;
+bool is_yaw_calibrated = false;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -111,7 +113,7 @@ bool run_to_point(double sx, double sy, double st, double error);
 bool handle_heading(int16_t heading, int16_t error);
 bool run_to_point_orientation(double sx, double sy, uint16_t heading, double error);
 bool set_heading(int16_t heading, int16_t error);
-bool run_to_point_with_yaw(double sx, double sy, uint16_t heading, double error);
+bool run_to_point_with_yaw(int16_t sx, int16_t sy, uint16_t heading, int16_t error);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -121,22 +123,22 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 {
 	if(htim->Instance  == TIM1){
 		encoder_A.counter  	= __HAL_TIM_GET_COUNTER(htim);
-		encoder_A.counts 		= (int16_t)encoder_A.counter;
+		encoder_A.counts 	= (int16_t)encoder_A.counter;
 		encoder_A.position	= encoder_A.counts/4;
 	}
 	if(htim->Instance  == TIM2){
 		encoder_B.counter  	= __HAL_TIM_GET_COUNTER(htim);
-		encoder_B.counts 		= (int16_t)encoder_B.counter;
+		encoder_B.counts 	= (int16_t)encoder_B.counter;
 		encoder_B.position	= encoder_B.counts/4;
 	}
 	if(htim->Instance  == TIM4){
 		encoder_C.counter  	= __HAL_TIM_GET_COUNTER(htim);
-		encoder_C.counts 		= (int16_t)encoder_C.counter;
+		encoder_C.counts 	= (int16_t)encoder_C.counter;
 		encoder_C.position	= encoder_C.counts/4;
 	}
 	if(htim->Instance  == TIM5){
 		encoder_D.counter  	= __HAL_TIM_GET_COUNTER(htim);
-		encoder_D.counts 		= (int16_t)encoder_D.counter;
+		encoder_D.counts 	= (int16_t)encoder_D.counter;
 		encoder_D.position	= encoder_D.counts/4;
 	}
 	// jarak dalam satuan mm dan mm/s
@@ -154,8 +156,8 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 	kinematic.S2 = -encoder_B.position*PULSE_TO_DIST;
 	kinematic.S3 = encoder_C.position*PULSE_TO_DIST;
 	kinematic.S4 = -encoder_D.position*PULSE_TO_DIST;
-	kinematic.V1 = -encoder_A.speed*PULSE_TO_DIST;
-	kinematic.V2 = -encoder_B.speed*PULSE_TO_DIST;
+	kinematic.V1 = -encoder_A.speed/7*60;
+	kinematic.V2 = -encoder_B.speed/7*60;
 	kinematic.V3 = encoder_C.speed*PULSE_TO_DIST;
 	kinematic.V4 = -encoder_D.speed*PULSE_TO_DIST;
 
@@ -168,26 +170,34 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 //	kinematic.Vt = agv_kinematic_St(-encoder_A.speed*PULSE_TO_DIST,-encoder_B.speed*PULSE_TO_DIST,-encoder_C.speed*PULSE_TO_DIST,-encoder_D.speed*PULSE_TO_DIST, 0);
 
 	// External Encoder (Nomor 3->x dan 4->y)
+	kinematic.St = kinematic.St + agv_kinematic_ext_St(kinematic.Sx,kinematic.Sy,encoder_C.position*PULSE_TO_DIST,-encoder_D.position*PULSE_TO_DIST, 0);
+	kinematic.Vt = kinematic.Vt + agv_kinematic_ext_St(kinematic.Vx,kinematic.Vy,encoder_C.speed*PULSE_TO_DIST,-encoder_D.speed*PULSE_TO_DIST, 0);
 	kinematic.Sx = agv_kinematic_ext_Sx(-encoder_A.position*PULSE_TO_DIST,-encoder_B.position*PULSE_TO_DIST,encoder_C.position*PULSE_TO_DIST,-encoder_D.position*PULSE_TO_DIST, 0);
 	kinematic.Sy = agv_kinematic_ext_Sy(-encoder_A.position*PULSE_TO_DIST,-encoder_B.position*PULSE_TO_DIST,encoder_C.position*PULSE_TO_DIST,-encoder_D.position*PULSE_TO_DIST, 0);
-//	kinematic.St = agv_kinematic_ext_St(-encoder_A.position*PULSE_TO_DIST,-encoder_B.position*PULSE_TO_DIST,encoder_C.position*PULSE_TO_DIST,encoder_D.position*PULSE_TO_DIST, 0);
 	kinematic.Vx = agv_kinematic_ext_Sx(-encoder_A.speed*PULSE_TO_DIST,-encoder_B.speed*PULSE_TO_DIST,encoder_C.speed*PULSE_TO_DIST,-encoder_D.speed*PULSE_TO_DIST, 0);
 	kinematic.Vy = agv_kinematic_ext_Sy(-encoder_A.speed*PULSE_TO_DIST,-encoder_B.speed*PULSE_TO_DIST,encoder_C.speed*PULSE_TO_DIST,-encoder_D.speed*PULSE_TO_DIST, 0);
-//	kinematic.Vt = agv_kinematic_ext_St(-encoder_A.speed*PULSE_TO_DIST,-encoder_B.speed*PULSE_TO_DIST,encoder_C.speed*PULSE_TO_DIST,encoder_D.speed*PULSE_TO_DIST, 0);
 
 	//	tx_ctrl_ping();
 }
 
 uint32_t CurrentTick = 0;
 uint32_t SendDataTick = 0;
-
+int16_t astarx[50];
+int16_t astary[50];
+//uint16_t astarid = 0;
 // checker message id
 uint32_t msgid = 0;
 uint32_t current_msgid = 0;
+bool is_astar_in = false;
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 	if(huart == &huart6){
 		rx_ctrl_get(&message_from_sensor);
+//		for(int i = 0; i < 5; i ++){
+//			astarx[astarid] = message_from_sensor.astar_coordinate_x[i];
+//			astary[astarid] = message_from_sensor.astar_coordinate_y[i];
+//			astarid++;
+//		}
 		msgid++;
 	}
 }
@@ -312,39 +322,44 @@ int main(void)
   //+++++++++++++++++++++++++++++++++ PID INITIALIZATION ++++++++++++++++++++++++++++++//
     // Y Axis
     pid_vy.Kp = 15;				pid_vy.Ki = 3;				pid_vy.Kd = -0.001;
-    pid_vy.limMax = 500; 		pid_vy.limMin = -500; 		pid_vy.limMaxInt = 1; 	pid_vy.limMinInt = -1;
+    pid_vy.limMax = 600; 		pid_vy.limMin = -600; 		pid_vy.limMaxInt = 1; 	pid_vy.limMinInt = -1;
     pid_vy.T_sample = 0.1;
     PIDController_Init(&pid_vy);
 
     // X Axis
     pid_vx.Kp = 15;				pid_vx.Ki = 3;				pid_vx.Kd = -0.001;
-    pid_vx.limMax = 500; 		pid_vx.limMin = -500; 		pid_vx.limMaxInt = 1; 	pid_vx.limMinInt = -1;
+    pid_vx.limMax = 600; 		pid_vx.limMin = -600; 		pid_vx.limMaxInt = 1; 	pid_vx.limMinInt = -1;
     pid_vx.T_sample = 0.1;
     PIDController_Init(&pid_vx);
 
     // T Axis
     pid_vt.Kp = 15;				pid_vt.Ki = 3;				pid_vt.Kd = -0.001;
-    pid_vt.limMax = 500; 		pid_vt.limMin = -500; 		pid_vt.limMaxInt = 1; 	pid_vt.limMinInt = -1;
+    pid_vt.limMax = 600; 		pid_vt.limMin = -600; 		pid_vt.limMaxInt = 1; 	pid_vt.limMinInt = -1;
     pid_vt.T_sample = 0.1;
     PIDController_Init(&pid_vt);
 
     // Yaw Direction
     pid_yaw.Kp = 25;			pid_yaw.Ki = 3;				pid_yaw.Kd = -0.001;
-    pid_yaw.limMax = 500; 		pid_yaw.limMin = -500; 		pid_yaw.limMaxInt = 1; 	pid_yaw.limMinInt = -1;
+    pid_yaw.limMax = 800; 		pid_yaw.limMin = -800; 		pid_yaw.limMaxInt = 1; 	pid_yaw.limMinInt = -1;
     pid_yaw.T_sample = 0.1;
     PIDController_Init(&pid_yaw);
 
     // STOP ALL Motor
 	agv_stop_all(motor_A, motor_B, motor_C, motor_D);
-	HAL_Delay(1000);
+	HAL_Delay(3000);
+
+	HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
+
+
+//	handle_heading(90,5);
 
 	//------------------------------ ONE STEP TEST --------------------------------------------------------//
 //	agv_inverse_kinematic(0, 100, 0, 0, motor_A, motor_B, motor_C, motor_D);
 //	HAL_Delay(1000);
 //	agv_reset_all(motor_A, motor_B, motor_C, motor_D);
 //	agv_stop_all(motor_A, motor_B, motor_C, motor_D);
-
-//	while(!run_to_point_with_yaw(0,500,0,50)){
+//
+//	while(!run_to_point_with_yaw(0,00,90,50)){
 //	}
 //	HAL_Delay(1000);
 //	while(!run_to_point_with_yaw(500,500,0,50)){
@@ -357,12 +372,78 @@ int main(void)
 //	}
 //	HAL_Delay(1000);
 //	aktuator_down(aktuator);
+
+	// Modify Astar
+//	message_from_sensor.astar_length = 3;
+//	message_from_sensor.astar_id = 1;
+//	message_from_sensor.astar_coordinate_x[0] = 0;
+//	message_from_sensor.astar_coordinate_y[0] = 0;
+//	message_from_sensor.astar_coordinate_x[1] = 500;
+//	message_from_sensor.astar_coordinate_y[1] = 500;
+//	message_from_sensor.astar_coordinate_x[2] = 0;
+//	message_from_sensor.astar_coordinate_y[2] = 500;
+
+
+
+//	while(!run_to_point_with_yaw(message_from_sensor.astar_coordinate_x[2],message_from_sensor.astar_coordinate_y[2],0,50)){
+//	}
+//	HAL_Delay(1000);
+//	while(!run_to_point_with_yaw(message_from_sensor.astar_coordinate_x[1],message_from_sensor.astar_coordinate_y[1],0,50)){
+//	}
+//	HAL_Delay(1000);
+//	while(!run_to_point_with_yaw(message_from_sensor.astar_coordinate_x[0],message_from_sensor.astar_coordinate_y[0],0,50)){
+//	}
+//	HAL_Delay(1000);
+
+//	while(!run_to_point_with_yaw(0,500,0,10)){
+//	}
+////	while(!handle_heading(0,10))
+//	HAL_Delay(1000);
+//	while(!run_to_point_with_yaw(500,500,0,10)){
+//	}
+////	while(!handle_heading(0,10))
+//	HAL_Delay(1000);
+//	while(!run_to_point_with_yaw(500,0,0,10)){
+//	}
+////	while(!handle_heading(0,10))
+//	HAL_Delay(1000);
+//	while(!run_to_point_with_yaw(0,0,0,10)){
+//	}
+//	HAL_Delay(1000);
+
+//	for(int i = 0;i < message_from_sensor.astar_length; i++){
+//		if(run_to_point_with_yaw(message_from_sensor.astar_coordinate_x[message_from_sensor.astar_length],message_from_sensor.astar_coordinate_y[message_from_sensor.astar_length],0,5)){
+//			message_from_sensor.astar_length--;
+//			HAL_Delay(5000);
+//		}
+//		HAL_Delay(3000);
+
+		// Add current Step value
+
+		// Sending to PC that Task is Done
+		//			tx_ctrl_task_done(currentStep);
+//	}
+//	  agv_reset_all(motor_A, motor_B, motor_C, motor_D);
+//	  agv_stop_all(motor_A, motor_B, motor_C, motor_D);
+//	  agv_speed_to_pwm(motor_A, 1000);
+//	  agv_speed_to_pwm(motor_B, 1000);
+//	  agv_speed_to_pwm(motor_C, 1000);
+//	  agv_speed_to_pwm(motor_D, 1000);
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 	while(1)
   {
+//		tx_ctrl_send_Encoder(kinematic);
+	//--------------------- YAW CALIBRATION PROGRAM ----------------------------//
+//		if(!is_yaw_calibrated && message_from_sensor.yaw != 0){
+//			Yaw_Init = message_from_sensor.yaw;
+//		}
+
+	//--------------------- SENDING DATA ODOMETRY ----------------------------//
+//
 //	CurrentTick = HAL_GetTick();
 //
 //	if(CurrentTick-SendDataTick > SEND_DATA_INTERVAL){
@@ -370,9 +451,6 @@ int main(void)
 //		SendDataTick = CurrentTick;
 //	}
 
-//	run_to_point_with_yaw(0,5000,0,50);
-//		tx_ctrl_send_Kinematic(kinematic.Sx,kinematic.Sy,kinematic.St,kinematic.Vx,kinematic.Vy,kinematic.Vt);
-//		tx_ctrl_send_Kinematic(kinematic.Sx,kinematic.Sy,kinematic.St,kinematic.Vx,kinematic.Vy,kinematic.Vt);
 //------------------------- TEST BENCH ----------------------------------------//
 //	  agv_reset_all(motor_A, motor_B, motor_C, motor_D);
 //	  agv_stop_all(motor_A, motor_B, motor_C, motor_D);
@@ -407,12 +485,12 @@ int main(void)
 //	  HAL_Delay(2000);
 
 //----------------------------- TEST POINT --------------------------------------------//
-//		run_to_point(0,500,0,5);
+//	  run_to_point(0,500,0,5);
 //	  run_to_point_orientation(0,300,0,3);
-	run_to_point_with_yaw(0,1000,0,3);
-//		handle_heading(180,5);
-//		handle_heading(90,5);
-//		HAL_Delay(100);
+//	  run_to_point_with_yaw(0,1000,0,3);
+//    handle_heading(180,5);
+//	  handle_heading(95,5);
+//	  HAL_Delay(100);
 
 //----------------------------- TEST HEADING --------------------------------------------//
 //		run_to_point_orientation(0,100,90,2);
@@ -428,16 +506,37 @@ int main(void)
 //		  }
 //	  }
 //----------------------------- RUNNING ASTAR --------------------------------------------//
-//	  if(message_from_sensor.astar_length > 0 && currentStep < message_from_sensor.astar_length){
-//		  if(run_to_point(message_from_sensor.astar_coordinate_x[message_from_sensor.astar_length-currentStep]*100,message_from_sensor.astar_coordinate_y[message_from_sensor.astar_length-currentStep]*100,message_from_sensor.orientation*100,5)){
-//
+//	  if(message_from_sensor.astar_length > 0){
+//		  while(!run_to_point_with_yaw(message_from_sensor.astar_coordinate_x[message_from_sensor.astar_length]*100,message_from_sensor.astar_coordinate_y[message_from_sensor.astar_length]*100,0,5)){
+//		  }
 //			// Add current Step value
-//			currentStep = currentStep+1;
+//		  	  message_from_sensor.astar_length--;
 //
 //			// Sending to PC that Task is Done
 ////			tx_ctrl_task_done(currentStep);
-//		  }
+//
 //	  }
+//
+//	for(int i = message_from_sensor.astar_length*5-1; i >= 0; i--){
+//		while(!run_to_point_with_yaw(message_from_sensor.astar_coordinate_x[i]*100,message_from_sensor.astar_coordinate_y[i]*100,0,50)){
+//		}
+//		HAL_Delay(1000);
+//	}
+	int astarlength = message_from_sensor.astar_length;
+	int astarid = message_from_sensor.astar_id;
+	if(astarlength > 0 && (astarlength-astarid == 1)){
+		for(int i = message_from_sensor.astar_length*5-1; i >= 0; i--){
+			while(!run_to_point_with_yaw(message_from_sensor.astar_coordinate_x[i]*50,message_from_sensor.astar_coordinate_y[i]*50,0,50)){
+			}
+			HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+			agv_stop_all(motor_A, motor_B, motor_C, motor_D);
+			HAL_Delay(1000);
+		}
+		is_astar_in = true;
+	}
+	else{
+		agv_stop_all(motor_A, motor_B, motor_C, motor_D);
+	}
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -1031,7 +1130,7 @@ bool run_to_point(double sx, double sy, double st, double error){
 
 bool handle_heading(int16_t heading, int16_t error){
 	// Sudut 0 - 180 - 0
-//	if(current_msgid < msgid){
+	if(current_msgid < msgid){
 		double degree = 0;
 		if(message_from_sensor.yaw < 0){
 			degree = abs(message_from_sensor.yaw)/100;
@@ -1059,8 +1158,8 @@ bool handle_heading(int16_t heading, int16_t error){
 				agv_inverse_kinematic(0, 0, -pid_yaw.out, 0, motor_A, motor_B, motor_C, motor_D);
 			}
 		}
-//		current_msgid = msgid;
-//	}
+		current_msgid = msgid;
+	}
 	return false;
 }
 
@@ -1089,8 +1188,8 @@ bool set_heading(int16_t heading, int16_t error){
 	return false;
 }
 
-bool run_to_point_with_yaw(double sx, double sy, uint16_t heading, double error){
-	if(current_msgid < msgid){
+bool run_to_point_with_yaw(int16_t sx, int16_t sy, uint16_t heading, int16_t error){
+//	if(current_msgid < msgid){
 		double degree = 0;
 		if(abs(kinematic.Sx - sx) < error && abs(kinematic.Sy - sy) < error && abs(degree - heading) < error){
 			agv_reset_all(motor_A, motor_B, motor_C, motor_D);
@@ -1118,8 +1217,8 @@ bool run_to_point_with_yaw(double sx, double sy, uint16_t heading, double error)
 			}
 
 		}
-		current_msgid = msgid;
-	}
+//		current_msgid = msgid;
+//	}
 	return false;
 }
 

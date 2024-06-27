@@ -139,9 +139,9 @@ double agv_kinematic_ext_Sy(int pos_A, int pos_B, int pos_C, int pos_D, double y
 	double sy = pos_C;
 	return sy;
 }
-double agv_kinematic_ext_St(int pos_A, int pos_B, int pos_C, int pos_D, double yaw){
-	double st = ((pos_C/pos_D)* 3.14 / 180.0);
-	return st;
+double agv_kinematic_ext_St(int last_x, int last_y, int new_x, int new_y, double yaw){
+    double st = atan2((double)(new_y-last_y), (double)new_x-last_x) * (180.0/M_PI) ;
+    return st;
 }
 
 ///////////////////////////////////////////// INVERSE KINEMATICS ///////////////////////////////////////////////////
