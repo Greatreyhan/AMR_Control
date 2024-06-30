@@ -516,6 +516,12 @@ int main(void)
 	else{
 		agv_stop_all(motor_A, motor_B, motor_C, motor_D);
 	}
+	if(message_from_sensor.aktuator == 1){
+		aktuator_up(aktuator);
+	}
+	else{
+		aktuator_down(aktuator);
+	}
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
