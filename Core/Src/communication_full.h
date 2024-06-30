@@ -148,7 +148,7 @@ void komunikasi_ctrl_init(UART_HandleTypeDef* uart_handler);
 uint8_t checksum_ctrl_generator(uint8_t* arr, uint8_t size);
 bool tx_ctrl_ping(void);
 bool tx_ctrl_send_BNO08X(BNO08X_Typedef BNO08x);
-bool tx_ctrl_task_done(uint16_t step);
+bool tx_ctrl_task_done(uint16_t step,com_ctrl_get_t* get);
 bool tx_ctrl_forwading(uint8_t* msg);
 bool tx_ctrl_send_Encoder(kinematic_t encoder);
 bool tx_ctrl_send_Odometry(int16_t Sx, int16_t Sy, int16_t St, int16_t Vx, int16_t Vy, int16_t Vt);

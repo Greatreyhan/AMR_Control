@@ -510,6 +510,7 @@ int main(void)
 			tx_ctrl_send_Odometry(kinematic.Sx,kinematic.Sy,kinematic.St,kinematic.Vx,kinematic.Vy,kinematic.Vt);
 			HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
 		}
+		tx_ctrl_task_done(message_from_sensor.astar_msg_id, &message_from_sensor);
 		lastlength = message_from_sensor.astar_total_length;
 		lastid = message_from_sensor.astar_msg_id;
 	}
