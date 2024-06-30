@@ -36,7 +36,15 @@ typedef struct{
 	int16_t astar_coordinate_y[100];
 	int16_t astar_id;
 	int16_t astar_length;
-	uint8_t msg[100];
+	uint16_t astar_total_length;
+	uint8_t astar_msg_id;
+
+	// Instruction from PC
+	uint16_t id_data;
+	int16_t x_data;
+	int16_t y_data;
+	int16_t t_data;
+	uint8_t aktuator;
 
 	// Odometry Data
 	int16_t x_pos;
@@ -85,7 +93,15 @@ typedef struct{
 	int16_t astar_coordinate_y[100];
 	int16_t astar_id;
 	int16_t astar_length;
-	uint8_t msg[100];
+	uint16_t astar_total_length;
+	uint8_t astar_msg_id;
+
+	// Instruction from PC
+	uint16_t id_data;
+	int16_t x_data;
+	int16_t y_data;
+	int16_t t_data;
+	uint8_t aktuator;
 
 	// Odometry Data
 	int16_t x_pos;
@@ -137,6 +153,8 @@ bool tx_ctrl_forwading(uint8_t* msg);
 bool tx_ctrl_send_Encoder(kinematic_t encoder);
 bool tx_ctrl_send_Odometry(int16_t Sx, int16_t Sy, int16_t St, int16_t Vx, int16_t Vy, int16_t Vt);
 bool tx_ctrl_send_Kinematic(uint16_t Sx, uint16_t Sy, uint16_t St, uint16_t T);
+bool tx_ctrl_send_Astar(void);
+bool tx_ctrl_send_Command(void);
 void rx_ctrl_start(void);
 void rx_ctrl_start_get(void);
 void rx_ctrl_get(com_ctrl_get_t* get);

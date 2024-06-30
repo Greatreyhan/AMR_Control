@@ -182,22 +182,18 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 
 uint32_t CurrentTick = 0;
 uint32_t SendDataTick = 0;
-int16_t astarx[50];
-int16_t astary[50];
-//uint16_t astarid = 0;
-// checker message id
+int astarlength = 0;
+int astarid = 0;
+int lastlength = 0;
+int lastid = 0;
 uint32_t msgid = 0;
 uint32_t current_msgid = 0;
-bool is_astar_in = false;
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 	if(huart == &huart6){
 		rx_ctrl_get(&message_from_sensor);
-//		for(int i = 0; i < 5; i ++){
-//			astarx[astarid] = message_from_sensor.astar_coordinate_x[i];
-//			astary[astarid] = message_from_sensor.astar_coordinate_y[i];
-//			astarid++;
-//		}
+		astarlength = message_from_sensor.astar_length;
+		astarid = message_from_sensor.astar_id;
 		msgid++;
 	}
 }
@@ -346,7 +342,7 @@ int main(void)
 
     // STOP ALL Motor
 	agv_stop_all(motor_A, motor_B, motor_C, motor_D);
-	HAL_Delay(3000);
+	HAL_Delay(1000);
 
 	HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
 
@@ -443,13 +439,13 @@ int main(void)
 //		}
 
 	//--------------------- SENDING DATA ODOMETRY ----------------------------//
-//
-//	CurrentTick = HAL_GetTick();
-//
-//	if(CurrentTick-SendDataTick > SEND_DATA_INTERVAL){
-//		tx_ctrl_send_Kinematic(kinematic.Sx,kinematic.Sy,kinematic.St,kinematic.Vx,kinematic.Vy,kinematic.Vt);
-//		SendDataTick = CurrentTick;
-//	}
+
+	CurrentTick = HAL_GetTick();
+
+	if(CurrentTick-SendDataTick > SEND_DATA_INTERVAL){
+		tx_ctrl_send_Odometry(kinematic.Sx,kinematic.Sy,kinematic.St,kinematic.Vx,kinematic.Vy,kinematic.Vt);
+		SendDataTick = CurrentTick;
+	}
 
 //------------------------- TEST BENCH ----------------------------------------//
 //	  agv_reset_all(motor_A, motor_B, motor_C, motor_D);
@@ -506,33 +502,16 @@ int main(void)
 //		  }
 //	  }
 //----------------------------- RUNNING ASTAR --------------------------------------------//
-//	  if(message_from_sensor.astar_length > 0){
-//		  while(!run_to_point_with_yaw(message_from_sensor.astar_coordinate_x[message_from_sensor.astar_length]*100,message_from_sensor.astar_coordinate_y[message_from_sensor.astar_length]*100,0,5)){
-//		  }
-//			// Add current Step value
-//		  	  message_from_sensor.astar_length--;
-//
-//			// Sending to PC that Task is Done
-////			tx_ctrl_task_done(currentStep);
-//
-//	  }
-//
-//	for(int i = message_from_sensor.astar_length*5-1; i >= 0; i--){
-//		while(!run_to_point_with_yaw(message_from_sensor.astar_coordinate_x[i]*100,message_from_sensor.astar_coordinate_y[i]*100,0,50)){
-//		}
-//		HAL_Delay(1000);
-//	}
-	int astarlength = message_from_sensor.astar_length;
-	int astarid = message_from_sensor.astar_id;
-	if(astarlength > 0 && (astarlength-astarid == 1)){
-		for(int i = message_from_sensor.astar_length*5-1; i >= 0; i--){
-			while(!run_to_point_with_yaw(message_from_sensor.astar_coordinate_x[i]*50,message_from_sensor.astar_coordinate_y[i]*50,0,50)){
+	if(astarlength > 0 && (astarlength-astarid == 1) && lastlength != message_from_sensor.astar_total_length && lastid != message_from_sensor.astar_msg_id){
+		for(int i = message_from_sensor.astar_total_length; i >= 0; i--){
+			HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);
+			while(!run_to_point_with_yaw(message_from_sensor.astar_coordinate_x[i]*100,message_from_sensor.astar_coordinate_y[i]*100,0,15)){
 			}
-			HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
-			agv_stop_all(motor_A, motor_B, motor_C, motor_D);
-			HAL_Delay(1000);
+			tx_ctrl_send_Odometry(kinematic.Sx,kinematic.Sy,kinematic.St,kinematic.Vx,kinematic.Vy,kinematic.Vt);
+			HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
 		}
-		is_astar_in = true;
+		lastlength = message_from_sensor.astar_total_length;
+		lastid = message_from_sensor.astar_msg_id;
 	}
 	else{
 		agv_stop_all(motor_A, motor_B, motor_C, motor_D);
