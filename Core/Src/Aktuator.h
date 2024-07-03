@@ -23,5 +23,6 @@ typedef struct{
 
 void aktuator_up(aktuator_t drv);
 void aktuator_down(aktuator_t drv);
+void aktuator_reset(aktuator_t drv);
 
 #endif /* SRC_AKTUATOR_H_ */

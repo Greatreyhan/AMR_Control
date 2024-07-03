@@ -141,15 +141,6 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 		encoder_D.counts 	= (int16_t)encoder_D.counter;
 		encoder_D.position	= encoder_D.counts/4;
 	}
-	// jarak dalam satuan mm dan mm/s
-//	kinematic.S1 = -encoder_A.position*PULSE_TO_DIST;
-//	kinematic.S2 = -encoder_B.position*PULSE_TO_DIST;
-//	kinematic.S3 = -encoder_C.position*PULSE_TO_DIST;
-//	kinematic.S4 = -encoder_D.position*PULSE_TO_DIST;
-//	kinematic.V1 = -encoder_A.speed*PULSE_TO_DIST;
-//	kinematic.V2 = -encoder_B.speed*PULSE_TO_DIST;
-//	kinematic.V3 = -encoder_C.speed*PULSE_TO_DIST;
-//	kinematic.V4 = -encoder_D.speed*PULSE_TO_DIST;
 
 	// Encoder Eksternal
 	kinematic.S1 = -encoder_A.position*PULSE_TO_DIST;
@@ -160,14 +151,6 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 	kinematic.V2 = -encoder_B.speed/7*60;
 	kinematic.V3 = encoder_C.speed*PULSE_TO_DIST;
 	kinematic.V4 = -encoder_D.speed*PULSE_TO_DIST;
-
-	// Internal Encoder
-//	kinematic.Sx = agv_kinematic_Sx(-encoder_A.position*PULSE_TO_DIST,-encoder_B.position*PULSE_TO_DIST,-encoder_C.position*PULSE_TO_DIST,-encoder_D.position*PULSE_TO_DIST, 0);
-//	kinematic.Sy = agv_kinematic_Sy(-encoder_A.position*PULSE_TO_DIST,-encoder_B.position*PULSE_TO_DIST,-encoder_C.position*PULSE_TO_DIST,-encoder_D.position*PULSE_TO_DIST, 0);
-//	kinematic.St = agv_kinematic_St(-encoder_A.position*PULSE_TO_DIST,-encoder_B.position*PULSE_TO_DIST,-encoder_C.position*PULSE_TO_DIST,-encoder_D.position*PULSE_TO_DIST, 0);
-//	kinematic.Vx = agv_kinematic_Sx(-encoder_A.speed*PULSE_TO_DIST,-encoder_B.speed*PULSE_TO_DIST,-encoder_C.speed*PULSE_TO_DIST,-encoder_D.speed*PULSE_TO_DIST, 0);
-//	kinematic.Vy = agv_kinematic_Sy(-encoder_A.speed*PULSE_TO_DIST,-encoder_B.speed*PULSE_TO_DIST,-encoder_C.speed*PULSE_TO_DIST,-encoder_D.speed*PULSE_TO_DIST, 0);
-//	kinematic.Vt = agv_kinematic_St(-encoder_A.speed*PULSE_TO_DIST,-encoder_B.speed*PULSE_TO_DIST,-encoder_C.speed*PULSE_TO_DIST,-encoder_D.speed*PULSE_TO_DIST, 0);
 
 	// External Encoder (Nomor 3->x dan 4->y)
 	kinematic.St = kinematic.St + agv_kinematic_ext_St(kinematic.Sx,kinematic.Sy,encoder_C.position*PULSE_TO_DIST,-encoder_D.position*PULSE_TO_DIST, 0);
@@ -421,17 +404,20 @@ int main(void)
 //	}
 //	  agv_reset_all(motor_A, motor_B, motor_C, motor_D);
 //	  agv_stop_all(motor_A, motor_B, motor_C, motor_D);
-//	  agv_speed_to_pwm(motor_A, 1000);
-//	  agv_speed_to_pwm(motor_B, 1000);
-//	  agv_speed_to_pwm(motor_C, 1000);
-//	  agv_speed_to_pwm(motor_D, 1000);
+//	  agv_speed_to_pwm(motor_A, 460);
+//	  agv_speed_to_pwm(motor_B, 460);
+//	  agv_speed_to_pwm(motor_C, 460);
+//	  agv_speed_to_pwm(motor_D, 460);
 
+//	  agv_inverse_kinematic(0, 500, 0, 0, motor_A, motor_B, motor_C, motor_D);
+//	  HAL_Delay(2000);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 	while(1)
   {
+	//--------------------- SEND DATA TESTING ----------------------------//
 //		tx_ctrl_send_Encoder(kinematic);
 	//--------------------- YAW CALIBRATION PROGRAM ----------------------------//
 //		if(!is_yaw_calibrated && message_from_sensor.yaw != 0){
@@ -502,27 +488,87 @@ int main(void)
 //		  }
 //	  }
 //----------------------------- RUNNING ASTAR --------------------------------------------//
-	if(astarlength > 0 && (astarlength-astarid == 1) && lastlength != message_from_sensor.astar_total_length && lastid != message_from_sensor.astar_msg_id){
-		for(int i = message_from_sensor.astar_total_length; i >= 0; i--){
-			HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);
+	if(lastid != message_from_sensor.astar_msg_id && message_from_sensor.id_data <= 0){
+		for(int i = message_from_sensor.astar_total_length-lastlength; i >= 0; i--){
 			while(!run_to_point_with_yaw(message_from_sensor.astar_coordinate_x[i]*100,message_from_sensor.astar_coordinate_y[i]*100,0,15)){
+
+//				 Interrupt message from Command
+				if(message_from_sensor.id_data > 0 && message_from_sensor.aktuator > 0){
+					agv_reset_all(motor_A, motor_B, motor_C, motor_D);
+					agv_stop_all(motor_A, motor_B, motor_C, motor_D);
+					break;
+				}
 			}
+
+//			 Set position based on Command
+			if(message_from_sensor.id_data > 0){
+				agv_reset_all(motor_A, motor_B, motor_C, motor_D);
+				agv_stop_all(motor_A, motor_B, motor_C, motor_D);
+
+				if(message_from_sensor.aktuator == 1){
+					aktuator_up(aktuator);
+					HAL_Delay(10000);
+					aktuator_reset(aktuator);
+					message_from_sensor.id_data = 0;
+					}
+				else if(message_from_sensor.aktuator == 2){
+					aktuator_down(aktuator);
+					HAL_Delay(10000);
+					aktuator_reset(aktuator);
+					message_from_sensor.id_data = 0;
+				}
+
+				if(message_from_sensor.x_data == 0 && message_from_sensor.y_data == 0 && message_from_sensor.t_data == 0){
+					agv_reset_all(motor_A, motor_B, motor_C, motor_D);
+					agv_stop_all(motor_A, motor_B, motor_C, motor_D);
+					HAL_Delay(5000);
+				}
+				else{
+					int16_t data_sx = kinematic.Sx+message_from_sensor.x_data;
+					int16_t data_sy = kinematic.Sy+message_from_sensor.y_data;
+					int16_t data_st = (abs(message_from_sensor.yaw)/100)+message_from_sensor.t_data;
+					while(!run_to_point_with_yaw(data_sx,data_sy,data_st,5)){}
+				}
+				i++;
+			}
+
 			tx_ctrl_send_Odometry(kinematic.Sx,kinematic.Sy,kinematic.St,kinematic.Vx,kinematic.Vy,kinematic.Vt);
-			HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
+
 		}
-		tx_ctrl_task_done(message_from_sensor.astar_msg_id, &message_from_sensor);
+//		tx_ctrl_task_done(message_from_sensor.astar_msg_id, &message_from_sensor);
 		lastlength = message_from_sensor.astar_total_length;
 		lastid = message_from_sensor.astar_msg_id;
+	}
+	else if(message_from_sensor.id_data > 0){
+		if(message_from_sensor.aktuator == 1){
+			aktuator_up(aktuator);
+			HAL_Delay(10000);
+			aktuator_reset(aktuator);
+			message_from_sensor.id_data = 0;
+		}
+		else if((message_from_sensor.aktuator == 2)){
+			aktuator_down(aktuator);
+			HAL_Delay(10000);
+			aktuator_reset(aktuator);
+			message_from_sensor.id_data = 0;
+		}
+		while(!run_to_point_with_yaw(kinematic.Sx+message_from_sensor.x_data,kinematic.Sy+message_from_sensor.y_data,kinematic.St+message_from_sensor.t_data,5)){}
 	}
 	else{
 		agv_stop_all(motor_A, motor_B, motor_C, motor_D);
 	}
-	if(message_from_sensor.aktuator == 1){
-		aktuator_up(aktuator);
-	}
-	else{
-		aktuator_down(aktuator);
-	}
+//----------------------------- RUNNING ASTAR --------------------------------------------//
+//	if(message_from_sensor.id_data > 0){
+//		agv_reset_all(motor_A, motor_B, motor_C, motor_D);
+//		agv_stop_all(motor_A, motor_B, motor_C, motor_D);
+//		if(message_from_sensor.aktuator == 1){
+//			aktuator_up(aktuator);
+//		}
+//		else{
+//			aktuator_down(aktuator);
+//		}
+//		while(!run_to_point_with_yaw(kinematic.Sx+message_from_sensor.x_data,kinematic.Sy+message_from_sensor.y_data,kinematic.St+message_from_sensor.t_data,5)){}
+//	}
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
