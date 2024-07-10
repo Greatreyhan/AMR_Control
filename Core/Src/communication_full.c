@@ -79,6 +79,14 @@ bool tx_ctrl_send_Encoder(kinematic_t encoder){
 	else return false;
 }
 
+bool tx_ctrl_send_data(int16_t data1, int16_t data2, int16_t data3, int16_t data4,int16_t data5,int16_t data6,int16_t data7){
+	uint8_t encoder_data[] = {0xA5, 0x5A, 0x55, (((int16_t)data1 >> 8) & 0XFF), (((int16_t)data1) & 0XFF), (((int16_t)data2 >> 8) & 0XFF), (((int16_t)data2) & 0XFF), (((int16_t)data3 >> 8) & 0XFF), (((int16_t)data3) & 0XFF), (((int16_t)data4 >> 8) & 0XFF), (((int16_t)data4) & 0XFF), (((int16_t)data5 >> 8) & 0XFF), (((int16_t)data5) & 0XFF), (((int16_t)data6 >> 8) & 0XFF), (((int16_t)data6) & 0XFF), (((int16_t)data7 >> 8) & 0XFF), (((int16_t)data7) & 0XFF), 0x00};
+	encoder_data[18] = checksum_ctrl_generator(encoder_data, 19);
+
+	if(HAL_UART_Transmit(huart_ctrl, encoder_data, 19, TIMEOUT_SEND) == HAL_OK) return true;
+	else return false;
+}
+
 bool tx_ctrl_send_Astar(void){
 	for(int i = 0; i <= id_holder; i++){
 		uint8_t tx_data[19];
@@ -242,6 +250,11 @@ void rx_ctrl_get(com_ctrl_get_t* get){
 			else if(rxbuf_get_ctrl[2] == 0x13){
 				uint8_t chk = checksum_ctrl_generator(rxbuf_get_ctrl,18);
 				if(chk == rxbuf_get_ctrl[18]){
+				// Menghapus sisa koordinat
+				for (int i = (rxbuf_get_ctrl[4]*5); i < 100-(rxbuf_get_ctrl[4]*5); i++) {
+					get->astar_coordinate_x[i] = 0;
+					get->astar_coordinate_y[i] = 0;
+				}
 				get->astar_id = (rxbuf_get_ctrl[3]);
 				get->astar_length = (rxbuf_get_ctrl[4]);
 				get->astar_coordinate_x[rxbuf_get_ctrl[3]*5+0] = (rxbuf_get_ctrl[5]);
@@ -335,7 +348,13 @@ bool tx_pc_send_Odometry(int16_t Sx, int16_t Sy, int16_t St, int16_t Vx, int16_t
 	if(HAL_UART_Transmit(huart_pc, odometry, 19, TIMEOUT_SEND) == HAL_OK) return true;
 	else return false;
 }
+bool tx_pc_send_data(int16_t data1, int16_t data2, int16_t data3, int16_t data4,int16_t data5,int16_t data6,int16_t data7){
+	uint8_t encoder_data[] = {0xA5, 0x5A, 0x55, (((int16_t)data1 >> 8) & 0XFF), (((int16_t)data1) & 0XFF), (((int16_t)data2 >> 8) & 0XFF), (((int16_t)data2) & 0XFF), (((int16_t)data3 >> 8) & 0XFF), (((int16_t)data3) & 0XFF), (((int16_t)data4 >> 8) & 0XFF), (((int16_t)data4) & 0XFF), (((int16_t)data5 >> 8) & 0XFF), (((int16_t)data5) & 0XFF), (((int16_t)data6 >> 8) & 0XFF), (((int16_t)data6) & 0XFF), (((int16_t)data7 >> 8) & 0XFF), (((int16_t)data7) & 0XFF), 0x00};
+	encoder_data[18] = checksum_pc_generator(encoder_data, 19);
 
+	if(HAL_UART_Transmit(huart_pc, encoder_data, 19, TIMEOUT_SEND) == HAL_OK) return true;
+	else return false;
+}
 void rx_pc_start_get(void){
 	HAL_UART_Receive_DMA(huart_pc,rxbuf_get_pc, 19);
 }

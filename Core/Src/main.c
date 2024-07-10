@@ -147,8 +147,8 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 	kinematic.S2 = -encoder_B.position*PULSE_TO_DIST;
 	kinematic.S3 = encoder_C.position*PULSE_TO_DIST;
 	kinematic.S4 = -encoder_D.position*PULSE_TO_DIST;
-	kinematic.V1 = -encoder_A.speed/7*60;
-	kinematic.V2 = -encoder_B.speed/7*60;
+	kinematic.V1 = -encoder_A.speed*PULSE_TO_DIST;
+	kinematic.V2 = -encoder_B.speed*PULSE_TO_DIST;
 	kinematic.V3 = encoder_C.speed*PULSE_TO_DIST;
 	kinematic.V4 = -encoder_D.speed*PULSE_TO_DIST;
 
@@ -159,8 +159,6 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 	kinematic.Sy = agv_kinematic_ext_Sy(-encoder_A.position*PULSE_TO_DIST,-encoder_B.position*PULSE_TO_DIST,encoder_C.position*PULSE_TO_DIST,-encoder_D.position*PULSE_TO_DIST, 0);
 	kinematic.Vx = agv_kinematic_ext_Sx(-encoder_A.speed*PULSE_TO_DIST,-encoder_B.speed*PULSE_TO_DIST,encoder_C.speed*PULSE_TO_DIST,-encoder_D.speed*PULSE_TO_DIST, 0);
 	kinematic.Vy = agv_kinematic_ext_Sy(-encoder_A.speed*PULSE_TO_DIST,-encoder_B.speed*PULSE_TO_DIST,encoder_C.speed*PULSE_TO_DIST,-encoder_D.speed*PULSE_TO_DIST, 0);
-
-	//	tx_ctrl_ping();
 }
 
 uint32_t CurrentTick = 0;
@@ -318,99 +316,21 @@ int main(void)
     PIDController_Init(&pid_vt);
 
     // Yaw Direction
-    pid_yaw.Kp = 25;			pid_yaw.Ki = 3;				pid_yaw.Kd = -0.001;
+//    pid_yaw.Kp = 45;			pid_yaw.Ki = 3;				pid_yaw.Kd = -0.01;
+    pid_yaw.Kp = 15;			pid_yaw.Ki = 15;			pid_yaw.Kd = -0.45;
     pid_yaw.limMax = 800; 		pid_yaw.limMin = -800; 		pid_yaw.limMaxInt = 1; 	pid_yaw.limMinInt = -1;
     pid_yaw.T_sample = 0.1;
     PIDController_Init(&pid_yaw);
 
-    // STOP ALL Motor
-	agv_stop_all(motor_A, motor_B, motor_C, motor_D);
-	HAL_Delay(1000);
 
 	HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
 
-
-//	handle_heading(90,5);
-
 	//------------------------------ ONE STEP TEST --------------------------------------------------------//
-//	agv_inverse_kinematic(0, 100, 0, 0, motor_A, motor_B, motor_C, motor_D);
-//	HAL_Delay(1000);
-//	agv_reset_all(motor_A, motor_B, motor_C, motor_D);
-//	agv_stop_all(motor_A, motor_B, motor_C, motor_D);
-//
-//	while(!run_to_point_with_yaw(0,00,90,50)){
-//	}
-//	HAL_Delay(1000);
-//	while(!run_to_point_with_yaw(500,500,0,50)){
-//	}
-//	HAL_Delay(1000);
-//	while(!run_to_point_with_yaw(500,0,0,50)){
-//	}
-//	HAL_Delay(1000);
-//	while(!run_to_point_with_yaw(0,0,0,50)){
-//	}
-//	HAL_Delay(1000);
-//	aktuator_down(aktuator);
-
-	// Modify Astar
-//	message_from_sensor.astar_length = 3;
-//	message_from_sensor.astar_id = 1;
-//	message_from_sensor.astar_coordinate_x[0] = 0;
-//	message_from_sensor.astar_coordinate_y[0] = 0;
-//	message_from_sensor.astar_coordinate_x[1] = 500;
-//	message_from_sensor.astar_coordinate_y[1] = 500;
-//	message_from_sensor.astar_coordinate_x[2] = 0;
-//	message_from_sensor.astar_coordinate_y[2] = 500;
-
-
-
-//	while(!run_to_point_with_yaw(message_from_sensor.astar_coordinate_x[2],message_from_sensor.astar_coordinate_y[2],0,50)){
-//	}
-//	HAL_Delay(1000);
-//	while(!run_to_point_with_yaw(message_from_sensor.astar_coordinate_x[1],message_from_sensor.astar_coordinate_y[1],0,50)){
-//	}
-//	HAL_Delay(1000);
-//	while(!run_to_point_with_yaw(message_from_sensor.astar_coordinate_x[0],message_from_sensor.astar_coordinate_y[0],0,50)){
-//	}
-//	HAL_Delay(1000);
-
-//	while(!run_to_point_with_yaw(0,500,0,10)){
-//	}
-////	while(!handle_heading(0,10))
-//	HAL_Delay(1000);
-//	while(!run_to_point_with_yaw(500,500,0,10)){
-//	}
-////	while(!handle_heading(0,10))
-//	HAL_Delay(1000);
-//	while(!run_to_point_with_yaw(500,0,0,10)){
-//	}
-////	while(!handle_heading(0,10))
-//	HAL_Delay(1000);
-//	while(!run_to_point_with_yaw(0,0,0,10)){
-//	}
-//	HAL_Delay(1000);
-
-//	for(int i = 0;i < message_from_sensor.astar_length; i++){
-//		if(run_to_point_with_yaw(message_from_sensor.astar_coordinate_x[message_from_sensor.astar_length],message_from_sensor.astar_coordinate_y[message_from_sensor.astar_length],0,5)){
-//			message_from_sensor.astar_length--;
-//			HAL_Delay(5000);
-//		}
-//		HAL_Delay(3000);
-
-		// Add current Step value
-
-		// Sending to PC that Task is Done
-		//			tx_ctrl_task_done(currentStep);
-//	}
-//	  agv_reset_all(motor_A, motor_B, motor_C, motor_D);
-//	  agv_stop_all(motor_A, motor_B, motor_C, motor_D);
-//	  agv_speed_to_pwm(motor_A, 460);
-//	  agv_speed_to_pwm(motor_B, 460);
-//	  agv_speed_to_pwm(motor_C, 460);
-//	  agv_speed_to_pwm(motor_D, 460);
-
-//	  agv_inverse_kinematic(0, 500, 0, 0, motor_A, motor_B, motor_C, motor_D);
-//	  HAL_Delay(2000);
+	aktuator_down(aktuator);
+	HAL_Delay(3000);
+	agv_reset_all(motor_A, motor_B, motor_C, motor_D);
+	agv_stop_all(motor_A, motor_B, motor_C, motor_D);
+	aktuator_reset(aktuator);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -418,7 +338,7 @@ int main(void)
 	while(1)
   {
 	//--------------------- SEND DATA TESTING ----------------------------//
-//		tx_ctrl_send_Encoder(kinematic);
+//		tx_ctrl_send_data(kinematic.V1, kinematic.V2, kinematic.V3, kinematic.V4, kinematic.S1,kinematic.S2,kinematic.S3);
 	//--------------------- YAW CALIBRATION PROGRAM ----------------------------//
 //		if(!is_yaw_calibrated && message_from_sensor.yaw != 0){
 //			Yaw_Init = message_from_sensor.yaw;
@@ -426,12 +346,12 @@ int main(void)
 
 	//--------------------- SENDING DATA ODOMETRY ----------------------------//
 
-	CurrentTick = HAL_GetTick();
-
-	if(CurrentTick-SendDataTick > SEND_DATA_INTERVAL){
-		tx_ctrl_send_Odometry(kinematic.Sx,kinematic.Sy,kinematic.St,kinematic.Vx,kinematic.Vy,kinematic.Vt);
-		SendDataTick = CurrentTick;
-	}
+//	CurrentTick = HAL_GetTick();
+//
+//	if(CurrentTick-SendDataTick > SEND_DATA_INTERVAL){
+//		tx_ctrl_send_Odometry(kinematic.Sx,kinematic.Sy,kinematic.St,kinematic.Vx,kinematic.Vy,kinematic.Vt);
+//		SendDataTick = CurrentTick;
+//	}
 
 //------------------------- TEST BENCH ----------------------------------------//
 //	  agv_reset_all(motor_A, motor_B, motor_C, motor_D);
@@ -470,8 +390,8 @@ int main(void)
 //	  run_to_point(0,500,0,5);
 //	  run_to_point_orientation(0,300,0,3);
 //	  run_to_point_with_yaw(0,1000,0,3);
-//    handle_heading(180,5);
-//	  handle_heading(95,5);
+//    handle_heading(45,5);
+//	  handle_heading(180,5);
 //	  HAL_Delay(100);
 
 //----------------------------- TEST HEADING --------------------------------------------//
@@ -499,6 +419,7 @@ int main(void)
 					break;
 				}
 			}
+			handle_heading(0,5);
 
 //			 Set position based on Command
 			if(message_from_sensor.id_data > 0){
@@ -1164,8 +1085,8 @@ bool handle_heading(int16_t heading, int16_t error){
 	// Sudut 0 - 180 - 0
 	if(current_msgid < msgid){
 		double degree = 0;
-		if(message_from_sensor.yaw < 0){
-			degree = abs(message_from_sensor.yaw)/100;
+		if(message_from_sensor.yaw > 1800){
+			degree = ((-message_from_sensor.yaw)+3600)/10;
 			if(abs(heading - degree) < error){
 				agv_reset_all(motor_A, motor_B, motor_C, motor_D);
 				agv_stop_all(motor_A, motor_B, motor_C, motor_D);
@@ -1178,7 +1099,7 @@ bool handle_heading(int16_t heading, int16_t error){
 			}
 		}
 		else{
-			degree = abs(message_from_sensor.yaw)/100;
+			degree = ((-message_from_sensor.yaw)+3600)/10;
 			if(abs(heading - degree) < error){
 				agv_reset_all(motor_A, motor_B, motor_C, motor_D);
 				agv_stop_all(motor_A, motor_B, motor_C, motor_D);
@@ -1229,8 +1150,8 @@ bool run_to_point_with_yaw(int16_t sx, int16_t sy, uint16_t heading, int16_t err
 			return true;
 		}
 		else{
-			if(message_from_sensor.yaw < 0){
-				degree = abs(message_from_sensor.yaw)/100;
+			if(message_from_sensor.yaw > 1800){
+				degree = ((-message_from_sensor.yaw)+3600)/10;
 				PIDController_Update(&pid_vx, sx, kinematic.Sx);
 				PIDController_Update(&pid_vy, sy, kinematic.Sy);
 				PIDController_Update(&pid_yaw, heading, degree);
@@ -1239,7 +1160,7 @@ bool run_to_point_with_yaw(int16_t sx, int16_t sy, uint16_t heading, int16_t err
 				return false;
 			}
 			else{
-				degree = (message_from_sensor.yaw)/100;
+				degree = ((-message_from_sensor.yaw)+3600)/10;
 				PIDController_Update(&pid_vx, sx, kinematic.Sx);
 				PIDController_Update(&pid_vy, sy, kinematic.Sy);
 				PIDController_Update(&pid_yaw, heading, degree);

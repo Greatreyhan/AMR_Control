@@ -151,6 +151,7 @@ bool tx_ctrl_send_BNO08X(BNO08X_Typedef BNO08x);
 bool tx_ctrl_task_done(uint16_t step,com_ctrl_get_t* get);
 bool tx_ctrl_forwading(uint8_t* msg);
 bool tx_ctrl_send_Encoder(kinematic_t encoder);
+bool tx_ctrl_send_data(int16_t data1, int16_t data2, int16_t data3, int16_t data4,int16_t data5,int16_t data6,int16_t data7);
 bool tx_ctrl_send_Odometry(int16_t Sx, int16_t Sy, int16_t St, int16_t Vx, int16_t Vy, int16_t Vt);
 bool tx_ctrl_send_Kinematic(uint16_t Sx, uint16_t Sy, uint16_t St, uint16_t T);
 bool tx_ctrl_send_Astar(void);
