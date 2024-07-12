@@ -470,6 +470,8 @@ int main(void)
 	else{
 		agv_stop_all(motor_A, motor_B, motor_C, motor_D);
 	}
+//----------------------------- END ASTAR --------------------------------------------//
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
