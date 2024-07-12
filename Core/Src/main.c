@@ -409,7 +409,7 @@ int main(void)
 //		  }
 //	  }
 //----------------------------- RUNNING ASTAR --------------------------------------------//
-	if(lastid != message_from_sensor.astar_msg_id && lastlength != message_from_sensor.astar_total_length){
+	if(lastid != message_from_sensor.astar_msg_id){
 		for(int i = message_from_sensor.astar_total_length-lastlength; i >= 0; i--){
 			while(!run_to_point_with_yaw(message_from_sensor.astar_coordinate_x[i]*100,message_from_sensor.astar_coordinate_y[i]*100,0,15)){
 
@@ -449,7 +449,7 @@ int main(void)
 //			tx_ctrl_send_Odometry(kinematic.Sx,kinematic.Sy,kinematic.St,kinematic.Vx,kinematic.Vy,kinematic.Vt);
 
 		}
-//		tx_ctrl_task_done(message_from_sensor.astar_msg_id, &message_from_sensor);
+		tx_ctrl_task_done(message_from_sensor.astar_msg_id, &message_from_sensor);
 		lastlength = message_from_sensor.astar_total_length;
 		lastid = message_from_sensor.astar_msg_id;
 	}

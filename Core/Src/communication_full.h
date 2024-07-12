@@ -22,6 +22,16 @@ typedef enum{
 	DATA = 0x05U,
 }command_type_t;
 
+typedef struct {
+    int16_t yaw;
+    int16_t pitch;
+    int16_t roll;
+    int16_t x_acceleration;
+    int16_t y_acceleration;
+    int16_t z_acceleration;
+    int16_t temperature;
+} BNO055_Typedef;
+
 typedef struct{
 	int16_t temperature;
 	int16_t humidity;
@@ -68,6 +78,15 @@ typedef struct{
 	int16_t Sy;
 	int16_t St;
 	int16_t T;
+
+	// Data Data
+	int16_t data1;
+	int16_t data2;
+	int16_t data3;
+	int16_t data4;
+	int16_t data5;
+	int16_t data6;
+	int16_t data7;
 
 	// IMU Data
 	int16_t roll;
@@ -125,6 +144,15 @@ typedef struct{
 	int16_t Sy;
 	int16_t St;
 	int16_t T;
+
+	// Data Data
+	int16_t data1;
+	int16_t data2;
+	int16_t data3;
+	int16_t data4;
+	int16_t data5;
+	int16_t data6;
+	int16_t data7;
 
 	// IMU Data
 	int16_t roll;
