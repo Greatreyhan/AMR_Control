@@ -180,6 +180,10 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 	}
 }
 
+//float kp_all = 13;
+//float ki_all = 13;
+//float kd_all = 1.34;
+
 /* USER CODE END 0 */
 
 /**
@@ -298,27 +302,26 @@ int main(void)
   rx_ctrl_start_get();
 
   //+++++++++++++++++++++++++++++++++ PID INITIALIZATION ++++++++++++++++++++++++++++++//
-    // Y Axis
-    pid_vy.Kp = 15;				pid_vy.Ki = 3;				pid_vy.Kd = -0.001;
-    pid_vy.limMax = 600; 		pid_vy.limMin = -600; 		pid_vy.limMaxInt = 1; 	pid_vy.limMinInt = -1;
-    pid_vy.T_sample = 0.1;
-    PIDController_Init(&pid_vy);
+  // Y Axis
+  pid_vy.Kp = 18;				pid_vy.Ki = 1;				pid_vy.Kd = 0.001;
+  pid_vy.limMax = 600; 		pid_vy.limMin = -600; 		pid_vy.limMaxInt = 1; 	pid_vy.limMinInt = -1;
+  pid_vy.T_sample = 0.1;
+  PIDController_Init(&pid_vy);
 
-    // X Axis
-    pid_vx.Kp = 15;				pid_vx.Ki = 3;				pid_vx.Kd = -0.001;
-    pid_vx.limMax = 600; 		pid_vx.limMin = -600; 		pid_vx.limMaxInt = 1; 	pid_vx.limMinInt = -1;
-    pid_vx.T_sample = 0.1;
-    PIDController_Init(&pid_vx);
+  // X Axis
+  pid_vx.Kp = 18;				pid_vx.Ki = 1;				pid_vx.Kd = 0.001;
+  pid_vx.limMax = 600; 		pid_vx.limMin = -600; 		pid_vx.limMaxInt = 1; 	pid_vx.limMinInt = -1;
+  pid_vx.T_sample = 0.1;
+  PIDController_Init(&pid_vx);
 
-    // T Axis
-    pid_vt.Kp = 15;				pid_vt.Ki = 3;				pid_vt.Kd = -0.001;
-    pid_vt.limMax = 600; 		pid_vt.limMin = -600; 		pid_vt.limMaxInt = 1; 	pid_vt.limMinInt = -1;
-    pid_vt.T_sample = 0.1;
-    PIDController_Init(&pid_vt);
-
+  // T Axis
+  pid_vt.Kp = 18;				pid_vt.Ki = 1;				pid_vt.Kd = 0.001;
+  pid_vt.limMax = 600; 		pid_vt.limMin = -600; 		pid_vt.limMaxInt = 1; 	pid_vt.limMinInt = -1;
+  pid_vt.T_sample = 0.1;
+  PIDController_Init(&pid_vt);
     // Yaw Direction
-//    pid_yaw.Kp = 45;			pid_yaw.Ki = 3;				pid_yaw.Kd = -0.01;
-    pid_yaw.Kp = 15;			pid_yaw.Ki = 15;			pid_yaw.Kd = -0.45;
+    pid_yaw.Kp = 40;			pid_yaw.Ki = 48;				pid_yaw.Kd = 0.02;
+//    pid_yaw.Kp = 15;			pid_yaw.Ki = 15;			pid_yaw.Kd = -0.45;
     pid_yaw.limMax = 800; 		pid_yaw.limMin = -800; 		pid_yaw.limMaxInt = 1; 	pid_yaw.limMinInt = -1;
     pid_yaw.T_sample = 0.1;
     PIDController_Init(&pid_yaw);
@@ -339,7 +342,7 @@ int main(void)
 	while(1)
   {
 	//--------------------- SEND DATA TESTING ----------------------------//
-//		tx_ctrl_send_data(kinematic.V1, kinematic.V2, kinematic.V3, kinematic.V4, kinematic.S1,kinematic.S2,kinematic.S3);
+//		tx_ctrl_send_data(kinematic.V1, kinematic.V2, kinematic.V3, kinematic.V4, kinematic.S1,kinematic.S3,kinematic.S4);
 	//--------------------- YAW CALIBRATION PROGRAM ----------------------------//
 //		if(!is_yaw_calibrated && message_from_sensor.yaw != 0){
 //			Yaw_Init = message_from_sensor.yaw;
@@ -388,12 +391,13 @@ int main(void)
 //	  HAL_Delay(2000);
 
 //----------------------------- TEST POINT --------------------------------------------//
-//	  run_to_point(0,500,0,5);
+//	  run_to_point(0,300,0,0.1);
 //	  run_to_point_orientation(0,300,0,3);
-//	  run_to_point_with_yaw(0,1000,0,3);
+//	  run_to_point_with_yaw(0,5000,0,1);
 //    handle_heading(45,5);
 //	  handle_heading(180,5);
 //	  HAL_Delay(100);
+//	set_heading(90,0.1);
 
 //----------------------------- TEST HEADING --------------------------------------------//
 //		run_to_point_orientation(0,100,90,2);
@@ -411,7 +415,7 @@ int main(void)
 //----------------------------- RUNNING ASTAR --------------------------------------------//
 	if(lastid != message_from_sensor.astar_msg_id){
 		for(int i = message_from_sensor.astar_total_length-lastlength; i >= 0; i--){
-			while(!run_to_point_with_yaw(message_from_sensor.astar_coordinate_x[i]*100,message_from_sensor.astar_coordinate_y[i]*100,0,15)){
+			while(!run_to_point_with_yaw(message_from_sensor.astar_coordinate_x[i]*500,message_from_sensor.astar_coordinate_y[i]*500,0,10)){
 
 				// Interrupt message from Command
 				if(message_from_sensor.id_data != lastcmd){
@@ -446,7 +450,7 @@ int main(void)
 				lastcmd = message_from_sensor.id_data;
 			}
 
-//			tx_ctrl_send_Odometry(kinematic.Sx,kinematic.Sy,kinematic.St,kinematic.Vx,kinematic.Vy,kinematic.Vt);
+			tx_ctrl_send_Odometry(kinematic.Sx,kinematic.Sy,kinematic.St,kinematic.Vx,kinematic.Vy,kinematic.Vt);
 
 		}
 		tx_ctrl_task_done(message_from_sensor.astar_msg_id, &message_from_sensor);
@@ -1047,7 +1051,7 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 
 bool run_to_point(double sx, double sy, double st, double error){
-	if(abs(kinematic.Sx - sx) < error && abs(kinematic.Sy - sy) < error && abs(kinematic.St - st) < error){
+	if(abs(kinematic.Sx - sx) < error && abs(kinematic.Sy - sy) < error ){
 		agv_reset_all(motor_A, motor_B, motor_C, motor_D);
 		agv_stop_all(motor_A, motor_B, motor_C, motor_D);
 		return true;
@@ -1055,9 +1059,9 @@ bool run_to_point(double sx, double sy, double st, double error){
 	else{
 		PIDController_Update(&pid_vx, sx, kinematic.Sx);
 		PIDController_Update(&pid_vy, sy, kinematic.Sy);
-		PIDController_Update(&pid_vt, st, kinematic.St);
+//		PIDController_Update(&pid_vt, st, kinematic.St);
 		agv_reset_all(motor_A, motor_B, motor_C, motor_D);
-		agv_inverse_kinematic(pid_vx.out, pid_vy.out, pid_vt.out, 0, motor_A, motor_B, motor_C, motor_D);
+		agv_inverse_kinematic(pid_vx.out, pid_vy.out, 0, 0, motor_A, motor_B, motor_C, motor_D);
 		return false;
 	}
 
@@ -1100,12 +1104,10 @@ bool handle_heading(int16_t heading, int16_t error){
 
 bool set_heading(int16_t heading, int16_t error){
 	if(current_msgid < msgid){
-		double degree = 0;
-		if(message_from_sensor.yaw < 0){
-			degree = (2*18000 + message_from_sensor.yaw)/100;
-		}
-		else{
-			degree = (message_from_sensor.yaw)/100;
+		double degree = (3600 - message_from_sensor.yaw)/10.0;
+
+		if(degree > 180){
+			degree = 360 - degree;
 		}
 
 		if(abs(heading - degree) < error){
@@ -1116,7 +1118,8 @@ bool set_heading(int16_t heading, int16_t error){
 		else{
 			PIDController_Update(&pid_yaw, heading, degree);
 			agv_reset_all(motor_A, motor_B, motor_C, motor_D);
-			agv_inverse_kinematic(0, 0, -pid_yaw.out, 0, motor_A, motor_B, motor_C, motor_D);
+
+			agv_inverse_kinematic(0, 0, degree > 0 ? pid_yaw.out : -pid_yaw.out, 0, motor_A, motor_B, motor_C, motor_D);
 		}
 		current_msgid = msgid;
 	}
@@ -1124,9 +1127,9 @@ bool set_heading(int16_t heading, int16_t error){
 }
 
 bool run_to_point_with_yaw(int16_t sx, int16_t sy, uint16_t heading, int16_t error){
-//	if(current_msgid < msgid){
+	if(current_msgid < msgid){
 		double degree = 0;
-		if(abs(kinematic.Sx - sx) < error && abs(kinematic.Sy - sy) < error && abs(degree - heading) < error){
+		if(abs(kinematic.Sx - sx) < error && abs(kinematic.Sy - sy) < error && abs(degree - heading) < 3){
 			agv_reset_all(motor_A, motor_B, motor_C, motor_D);
 			agv_stop_all(motor_A, motor_B, motor_C, motor_D);
 			return true;
@@ -1145,17 +1148,18 @@ bool run_to_point_with_yaw(int16_t sx, int16_t sy, uint16_t heading, int16_t err
 				degree = ((-message_from_sensor.yaw)+3600)/10;
 				PIDController_Update(&pid_vx, sx, kinematic.Sx);
 				PIDController_Update(&pid_vy, sy, kinematic.Sy);
-				PIDController_Update(&pid_yaw, heading, degree);
+				PIDController_Update(&pid_yaw, heading, -degree);
 				agv_reset_all(motor_A, motor_B, motor_C, motor_D);
-				agv_inverse_kinematic(pid_vx.out, pid_vy.out, (-pid_yaw.out), 0, motor_A, motor_B, motor_C, motor_D);
+				agv_inverse_kinematic(pid_vx.out, pid_vy.out, (pid_yaw.out), 0, motor_A, motor_B, motor_C, motor_D);
 				return false;
 			}
 
 		}
-//		current_msgid = msgid;
-//	}
+		current_msgid = msgid;
+	}
 	return false;
 }
+
 
 bool run_to_point_orientation(double sx, double sy, uint16_t heading, double error){
 	if(current_msgid < msgid){

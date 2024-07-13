@@ -13,7 +13,8 @@
 
 #define DEG_TO_RAD(deg) ((deg) * M_PI / 180.0)
 //#define PULSE_TO_DIST	44.856 // konstanta pulse encoder ke jarak linear u/ hall efect dlm satuan mm
-#define PULSE_TO_DIST 	0.3037 // Untuk encoder Eksternal
+//#define PULSE_TO_DIST 	0.3037*2 // Untuk encoder Eksternal
+#define PULSE_TO_DIST 	0.607066667
 typedef struct{
 	TIM_HandleTypeDef* 	tim;
 	TIM_TypeDef* 				tim_number;
