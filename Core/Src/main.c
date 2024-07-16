@@ -183,7 +183,9 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 //float kp_all = 13;
 //float ki_all = 13;
 //float kd_all = 1.34;
-
+int16_t data_sx=0;
+int16_t data_sy=0;
+int16_t data_st=0;
 /* USER CODE END 0 */
 
 /**
@@ -320,9 +322,9 @@ int main(void)
   pid_vt.T_sample = 0.1;
   PIDController_Init(&pid_vt);
     // Yaw Direction
-    pid_yaw.Kp = 40;			pid_yaw.Ki = 48;				pid_yaw.Kd = 0.02;
-//    pid_yaw.Kp = 15;			pid_yaw.Ki = 15;			pid_yaw.Kd = -0.45;
-    pid_yaw.limMax = 800; 		pid_yaw.limMin = -800; 		pid_yaw.limMaxInt = 1; 	pid_yaw.limMinInt = -1;
+//    pid_yaw.Kp = 40;			pid_yaw.Ki = 48;				pid_yaw.Kd = 0.02;
+    pid_yaw.Kp = 15;			pid_yaw.Ki = 15;			pid_yaw.Kd = 0.45;
+    pid_yaw.limMax = 800; 		pid_yaw.limMin = -800; 		pid_yaw.limMaxInt = 0.1; 	pid_yaw.limMinInt = -0.1;
     pid_yaw.T_sample = 0.1;
     PIDController_Init(&pid_yaw);
 
@@ -415,7 +417,7 @@ int main(void)
 //----------------------------- RUNNING ASTAR --------------------------------------------//
 	if(lastid != message_from_sensor.astar_msg_id){
 		for(int i = message_from_sensor.astar_total_length-lastlength; i >= 0; i--){
-			while(!run_to_point_with_yaw(message_from_sensor.astar_coordinate_x[i]*500,message_from_sensor.astar_coordinate_y[i]*500,0,10)){
+			while(!run_to_point_with_yaw(message_from_sensor.astar_coordinate_x[i]*500,message_from_sensor.astar_coordinate_y[i]*500,0,5)){
 
 				// Interrupt message from Command
 				if(message_from_sensor.id_data != lastcmd){
@@ -423,8 +425,10 @@ int main(void)
 					agv_stop_all(motor_A, motor_B, motor_C, motor_D);
 					break;
 				}
+				tx_ctrl_send_Odometry(kinematic.Sx,kinematic.Sy,kinematic.St,kinematic.Vx,kinematic.Vy,kinematic.Vt);
+
 			}
-//			handle_heading(0,5);
+			handle_heading(0,1);
 
 			if(message_from_sensor.aktuator == 1 && (message_from_sensor.id_data != lastcmd)){
 				aktuator_up(aktuator);
@@ -437,10 +441,11 @@ int main(void)
 				lastcmd = message_from_sensor.id_data;
 			}
 			if((message_from_sensor.id_data != lastcmd && (message_from_sensor.x_data != 0 || message_from_sensor.y_data != 0 || message_from_sensor.t_data != 0))){
-				int16_t data_sx = kinematic.Sx+message_from_sensor.x_data;
-				int16_t data_sy = kinematic.Sy+message_from_sensor.y_data;
-				int16_t data_st = (abs(message_from_sensor.yaw)/100)+message_from_sensor.t_data;
-				while(!run_to_point_with_yaw(data_sx,data_sy,data_st,5)){}
+				data_sx = kinematic.Sx+message_from_sensor.x_data;
+				data_sy = kinematic.Sy+message_from_sensor.y_data;
+				data_st = (abs(message_from_sensor.yaw)/100)+message_from_sensor.t_data;
+				while(!run_to_point_with_yaw(data_sx,data_sy,0,5)){}
+				HAL_Delay(10000);
 				lastcmd = message_from_sensor.id_data;
 			}
 			else if((message_from_sensor.id_data != lastcmd && (message_from_sensor.x_data != 0 || message_from_sensor.y_data != 0 || message_from_sensor.t_data != 0))){
@@ -468,8 +473,13 @@ int main(void)
 		lastcmd = message_from_sensor.id_data;
 	}
 	if((message_from_sensor.id_data != lastcmd && (message_from_sensor.x_data != 0 || message_from_sensor.y_data != 0 || message_from_sensor.t_data != 0))){
-		while(!run_to_point_with_yaw(kinematic.Sx+message_from_sensor.x_data,kinematic.Sy+message_from_sensor.y_data,kinematic.St+message_from_sensor.t_data,5)){}
+		data_sx = kinematic.Sx+message_from_sensor.x_data;
+		data_sy = kinematic.Sy+message_from_sensor.y_data;
+		data_st = (abs(message_from_sensor.yaw)/100)+message_from_sensor.t_data;
+
+		while(!run_to_point_with_yaw(data_sx,data_sy,0,5)){}
 		lastcmd = message_from_sensor.id_data;
+		lastlength = message_from_sensor.astar_total_length;
 	}
 	else{
 		agv_stop_all(motor_A, motor_B, motor_C, motor_D);
@@ -1127,7 +1137,7 @@ bool set_heading(int16_t heading, int16_t error){
 }
 
 bool run_to_point_with_yaw(int16_t sx, int16_t sy, uint16_t heading, int16_t error){
-	if(current_msgid < msgid){
+//	if(current_msgid < msgid){
 		double degree = 0;
 		if(abs(kinematic.Sx - sx) < error && abs(kinematic.Sy - sy) < error && abs(degree - heading) < 3){
 			agv_reset_all(motor_A, motor_B, motor_C, motor_D);
@@ -1144,7 +1154,7 @@ bool run_to_point_with_yaw(int16_t sx, int16_t sy, uint16_t heading, int16_t err
 				agv_inverse_kinematic(pid_vx.out, pid_vy.out, (pid_yaw.out), 0, motor_A, motor_B, motor_C, motor_D);
 				return false;
 			}
-			else{
+			else if(message_from_sensor.yaw < 1800){
 				degree = ((-message_from_sensor.yaw)+3600)/10;
 				PIDController_Update(&pid_vx, sx, kinematic.Sx);
 				PIDController_Update(&pid_vy, sy, kinematic.Sy);
@@ -1153,10 +1163,19 @@ bool run_to_point_with_yaw(int16_t sx, int16_t sy, uint16_t heading, int16_t err
 				agv_inverse_kinematic(pid_vx.out, pid_vy.out, (pid_yaw.out), 0, motor_A, motor_B, motor_C, motor_D);
 				return false;
 			}
+			else{
+				degree = ((-message_from_sensor.yaw)+3600)/10;
+				PIDController_Update(&pid_vx, sx, kinematic.Sx);
+				PIDController_Update(&pid_vy, sy, kinematic.Sy);
+				PIDController_Update(&pid_yaw, heading, 0);
+				agv_reset_all(motor_A, motor_B, motor_C, motor_D);
+				agv_inverse_kinematic(pid_vx.out, pid_vy.out, (pid_yaw.out), 0, motor_A, motor_B, motor_C, motor_D);
+				return false;
+			}
 
 		}
-		current_msgid = msgid;
-	}
+//		current_msgid = msgid;
+//	}
 	return false;
 }
 

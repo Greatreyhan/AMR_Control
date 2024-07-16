@@ -42,8 +42,8 @@ typedef struct{
 
 typedef struct{
 	// Astar Algorithm
-	int16_t astar_coordinate_x[100];
-	int16_t astar_coordinate_y[100];
+	int16_t astar_coordinate_x[300];
+	int16_t astar_coordinate_y[300];
 	int16_t astar_id;
 	int16_t astar_length;
 	uint16_t astar_total_length;
@@ -108,8 +108,8 @@ typedef struct{
 
 typedef struct{
 	// Astar Algorithm
-	int16_t astar_coordinate_x[100];
-	int16_t astar_coordinate_y[100];
+	int16_t astar_coordinate_x[300];
+	int16_t astar_coordinate_y[300];
 	int16_t astar_id;
 	int16_t astar_length;
 	uint16_t astar_total_length;
