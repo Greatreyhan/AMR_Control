@@ -192,6 +192,11 @@ int16_t data_st=0;
   * @brief  The application entry point.
   * @retval int
   */
+uint8_t flag_interrupt = 0;
+uint8_t last_interrupted = 0;
+uint8_t x_arr[100];
+uint8_t y_arr[100];
+//int last_length;
 int main(void)
 {
   /* USER CODE BEGIN 1 */
@@ -351,13 +356,13 @@ int main(void)
 //		}
 
 	//--------------------- SENDING DATA ODOMETRY ----------------------------//
-
-	CurrentTick = HAL_GetTick();
-
-	if(CurrentTick-SendDataTick > SEND_DATA_INTERVAL){
-		tx_ctrl_send_Odometry(kinematic.Sx,kinematic.Sy,kinematic.St,kinematic.Vx,kinematic.Vy,kinematic.Vt);
-		SendDataTick = CurrentTick;
-	}
+//
+//	CurrentTick = HAL_GetTick();
+//
+//	if(CurrentTick-SendDataTick > SEND_DATA_INTERVAL){
+//		tx_ctrl_send_Odometry(kinematic.Sx,kinematic.Sy,kinematic.St,kinematic.Vx,kinematic.Vy,kinematic.Vt);
+//		SendDataTick = CurrentTick;
+//	}
 
 //------------------------- TEST BENCH ----------------------------------------//
 //	  agv_reset_all(motor_A, motor_B, motor_C, motor_D);
@@ -415,9 +420,26 @@ int main(void)
 //		  }
 //	  }
 //----------------------------- RUNNING ASTAR --------------------------------------------//
-	if(lastid != message_from_sensor.astar_msg_id){
-		for(int i = message_from_sensor.astar_total_length-lastlength; i >= 0; i--){
-			while(!run_to_point_with_yaw(message_from_sensor.astar_coordinate_x[i]*500,message_from_sensor.astar_coordinate_y[i]*500,0,5)){
+	if(lastid != message_from_sensor.astar_msg_id && message_from_sensor.astar_msg_id != 0){
+		// Run Astar Step
+		for(int x = 0; x < 100; x++){
+			x_arr[x] = message_from_sensor.astar_coordinate_x[x];
+			y_arr[x] = message_from_sensor.astar_coordinate_y[x];
+		}
+//		last_length = lastlength;
+//		HAL_Delay(5000);
+		int run_length = 0;
+		if(flag_interrupt == 1){
+			run_length = message_from_sensor.astar_total_length;
+		}
+		else{
+			run_length = message_from_sensor.astar_total_length-lastlength;
+		}
+		for(int i=run_length; i >= 0; i--){
+//			x = message_from_sensor.astar_coordinate_x[i];
+//			y = message_from_sensor.astar_coordinate_y[i];
+			// Menuju posisi Astar
+			while(!run_to_point_with_yaw(x_arr[i]*500,y_arr[i]*500,0,5)){
 
 				// Interrupt message from Command
 				if(message_from_sensor.id_data != lastcmd){
@@ -430,6 +452,7 @@ int main(void)
 			}
 			handle_heading(0,1);
 
+			// Handling Interrupt
 			if(message_from_sensor.aktuator == 1 && (message_from_sensor.id_data != lastcmd)){
 				aktuator_up(aktuator);
 				message_from_sensor.aktuator = 0;
@@ -441,27 +464,44 @@ int main(void)
 				lastcmd = message_from_sensor.id_data;
 			}
 			if((message_from_sensor.id_data != lastcmd && (message_from_sensor.x_data != 0 || message_from_sensor.y_data != 0 || message_from_sensor.t_data != 0))){
-				data_sx = kinematic.Sx+message_from_sensor.x_data;
-				data_sy = kinematic.Sy+message_from_sensor.y_data;
-				data_st = (abs(message_from_sensor.yaw)/100)+message_from_sensor.t_data;
-				while(!run_to_point_with_yaw(data_sx,data_sy,0,5)){}
-				HAL_Delay(10000);
-				lastcmd = message_from_sensor.id_data;
+				// break for loop ( go to outside interrupt )
+				tx_ctrl_task_done(message_from_sensor.astar_msg_id, &message_from_sensor);
+				last_interrupted = i;
+				lastid = message_from_sensor.astar_msg_id;
+				flag_interrupt = 1;
+				i=-1;
+//				HAL_Delay(5000);
+//				break;
+//				break;
+//				data_sx = kinematic.Sx+message_from_sensor.x_data;
+//				data_sy = kinematic.Sy+message_from_sensor.y_data;
+//				data_st = (abs(message_from_sensor.yaw)/100)+message_from_sensor.t_data;
+//				while(!run_to_point_with_yaw(data_sx,data_sy,0,5)){}
+//				HAL_Delay(10000);
+//				lastcmd = message_from_sensor.id_data;
+//				lastlength = message_from_sensor.astar_total_length;
+//				i = 0;
 			}
-			else if((message_from_sensor.id_data != lastcmd && (message_from_sensor.x_data != 0 || message_from_sensor.y_data != 0 || message_from_sensor.t_data != 0))){
-				agv_reset_all(motor_A, motor_B, motor_C, motor_D);
-				agv_stop_all(motor_A, motor_B, motor_C, motor_D);
-				HAL_Delay(5000);
-				lastcmd = message_from_sensor.id_data;
+			else{
+				lastlength = message_from_sensor.astar_total_length;
+				lastid = message_from_sensor.astar_msg_id;
 			}
+//			else if((message_from_sensor.id_data != lastcmd && (message_from_sensor.x_data != 0 || message_from_sensor.y_data != 0 || message_from_sensor.t_data != 0))){
+//				agv_reset_all(motor_A, motor_B, motor_C, motor_D);
+//				agv_stop_all(motor_A, motor_B, motor_C, motor_D);
+////				HAL_Delay(5000);
+//				lastcmd = message_from_sensor.id_data;
+////				lastlength = message_from_sensor.astar_total_length;
+////				i = 0;
+//			}
 
 			tx_ctrl_send_Odometry(kinematic.Sx,kinematic.Sy,kinematic.St,kinematic.Vx,kinematic.Vy,kinematic.Vt);
 
 		}
-		tx_ctrl_task_done(message_from_sensor.astar_msg_id, &message_from_sensor);
-		lastlength = message_from_sensor.astar_total_length;
-		lastid = message_from_sensor.astar_msg_id;
+		// Handling when Astar step done
+//		tx_ctrl_task_done(message_from_sensor.astar_msg_id, &message_from_sensor);
 	}
+	// Handling Interrupt Outside the Astar step
 	if(message_from_sensor.aktuator == 1 && (message_from_sensor.id_data != lastcmd)){
 		aktuator_up(aktuator);
 		message_from_sensor.aktuator = 0;
@@ -478,6 +518,8 @@ int main(void)
 		data_st = (abs(message_from_sensor.yaw)/100)+message_from_sensor.t_data;
 
 		while(!run_to_point_with_yaw(data_sx,data_sy,0,5)){}
+		tx_ctrl_send_Odometry(kinematic.Sx,kinematic.Sy,kinematic.St,kinematic.Vx,kinematic.Vy,kinematic.Vt);
+
 		lastcmd = message_from_sensor.id_data;
 		lastlength = message_from_sensor.astar_total_length;
 	}

@@ -2,7 +2,7 @@
 ../Core/Src/communication_full.c:29:9:checksum_ctrl_generator	2
 ../Core/Src/communication_full.c:35:6:tx_ctrl_ping	2
 ../Core/Src/communication_full.c:43:6:tx_ctrl_send_BNO055	2
-../Core/Src/communication_full.c:51:6:tx_ctrl_task_done	3
+../Core/Src/communication_full.c:51:6:tx_ctrl_task_done	2
 ../Core/Src/communication_full.c:67:6:tx_ctrl_send_Kinematic	2
 ../Core/Src/communication_full.c:75:6:tx_ctrl_send_Encoder	2
 ../Core/Src/communication_full.c:83:6:tx_ctrl_send_data	2

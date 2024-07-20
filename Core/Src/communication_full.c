@@ -49,8 +49,8 @@ bool tx_ctrl_send_BNO055(BNO055_Typedef BNO055){
 }
 
 bool tx_ctrl_task_done(uint16_t step,com_ctrl_get_t* get){
-	uint8_t task_done[] = {0xA5, 0x5A, 0x03, ((step >> 8) & 0XFF), ((step) & 0XFF), 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-	task_done[18] = checksum_ctrl_generator(task_done, 19);
+//	uint8_t task_done[] = {0xA5, 0x5A, 0x03, ((step >> 8) & 0XFF), ((step) & 0XFF), 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+//	task_done[18] = checksum_ctrl_generator(task_done, 19);
 
 	for(int i = 0; i < 100; i++){
 		get->astar_coordinate_x[i] = 0;
@@ -60,8 +60,8 @@ bool tx_ctrl_task_done(uint16_t step,com_ctrl_get_t* get){
 //	get->astar_length = 0;
 //	get->astar_total_length = 0;
 //	get->astar_msg_id = 0;
-	if(HAL_UART_Transmit(huart_ctrl, task_done, 19, TIMEOUT_SEND) == HAL_OK) return true;
-	else return false;
+//	if(HAL_UART_Transmit(huart_ctrl, task_done, 19, TIMEOUT_SEND) == HAL_OK) return true;
+//	else return false;
 }
 //---------------------------------------------------- Send Kinematic Data -----------------------------------------------------------------------------------------//
 bool tx_ctrl_send_Kinematic(uint16_t Sx, uint16_t Sy, uint16_t St, uint16_t T){
