@@ -311,25 +311,25 @@ int main(void)
 
   //+++++++++++++++++++++++++++++++++ PID INITIALIZATION ++++++++++++++++++++++++++++++//
   // Y Axis
-  pid_vy.Kp = 18;				pid_vy.Ki = 1;				pid_vy.Kd = 0.001;
+  pid_vy.Kp = 19;				pid_vy.Ki = 1;				pid_vy.Kd = 0.001;
   pid_vy.limMax = 600; 		pid_vy.limMin = -600; 		pid_vy.limMaxInt = 1; 	pid_vy.limMinInt = -1;
   pid_vy.T_sample = 0.1;
   PIDController_Init(&pid_vy);
 
   // X Axis
-  pid_vx.Kp = 18;				pid_vx.Ki = 1;				pid_vx.Kd = 0.001;
+  pid_vx.Kp = 19;				pid_vx.Ki = 1;				pid_vx.Kd = 0.001;
   pid_vx.limMax = 600; 		pid_vx.limMin = -600; 		pid_vx.limMaxInt = 1; 	pid_vx.limMinInt = -1;
   pid_vx.T_sample = 0.1;
   PIDController_Init(&pid_vx);
 
   // T Axis
-  pid_vt.Kp = 18;				pid_vt.Ki = 1;				pid_vt.Kd = 0.001;
+  pid_vt.Kp = 19;				pid_vt.Ki = 1;				pid_vt.Kd = 0.001;
   pid_vt.limMax = 600; 		pid_vt.limMin = -600; 		pid_vt.limMaxInt = 1; 	pid_vt.limMinInt = -1;
   pid_vt.T_sample = 0.1;
   PIDController_Init(&pid_vt);
     // Yaw Direction
 //    pid_yaw.Kp = 40;			pid_yaw.Ki = 48;				pid_yaw.Kd = 0.02;
-    pid_yaw.Kp = 15;			pid_yaw.Ki = 15;			pid_yaw.Kd = 0.45;
+    pid_yaw.Kp = 18;			pid_yaw.Ki = 15;			pid_yaw.Kd = 0.45;
     pid_yaw.limMax = 800; 		pid_yaw.limMin = -800; 		pid_yaw.limMaxInt = 0.1; 	pid_yaw.limMinInt = -0.1;
     pid_yaw.T_sample = 0.1;
     PIDController_Init(&pid_yaw);
@@ -433,44 +433,46 @@ int main(void)
 //					flag_interrupt = 0;
 //					i=-1;
 //				}
-				if(true){
-					while(!run_to_point_with_yaw(message_from_sensor.astar_coordinate_x[i]*500,message_from_sensor.astar_coordinate_y[i]*500,0,5)){
-
-						// Interrupt message from Command
-						if(message_from_sensor.id_data != lastcmd){
-							agv_reset_all(motor_A, motor_B, motor_C, motor_D);
-							agv_stop_all(motor_A, motor_B, motor_C, motor_D);
-							break;
-						}
+				uint32_t cntr = 0;
+				while(!run_to_point_with_yaw(message_from_sensor.astar_coordinate_x[i]*500,message_from_sensor.astar_coordinate_y[i]*500,0,5)){
+					cntr++;
+					if(cntr > 8000){
+						break;
+					}
+					// Interrupt message from Command
+					if(message_from_sensor.id_data != lastcmd){
+						agv_reset_all(motor_A, motor_B, motor_C, motor_D);
+						agv_stop_all(motor_A, motor_B, motor_C, motor_D);
+						break;
+					}
 //						tx_ctrl_send_Odometry(kinematic.Sx,kinematic.Sy,kinematic.St,kinematic.Vx,kinematic.Vy,kinematic.Vt);
-					}
+				}
 					handle_heading(0,1);
-					if(flag_interrupt==1){
-						HAL_Delay(100);
+
+				if(flag_interrupt==1){
+					HAL_Delay(100);
 //						flag_interrupt = 1;
-					}
+				}
 //					HAL_Delay(1000);
 
-					if(message_from_sensor.aktuator == 1 && (message_from_sensor.id_data != lastcmd)){
-						aktuator_up(aktuator);
-						message_from_sensor.aktuator = 0;
-						lastcmd = message_from_sensor.id_data;
-					}
-					else if((message_from_sensor.aktuator == 2) && (message_from_sensor.id_data != lastcmd)){
-						aktuator_down(aktuator);
-						message_from_sensor.aktuator = 0;
-						lastcmd = message_from_sensor.id_data;
-					}
-					if((message_from_sensor.id_data != lastcmd && (message_from_sensor.x_data != 0 || message_from_sensor.y_data != 0 || message_from_sensor.t_data != 0))){
-						lastlength = message_from_sensor.astar_total_length;
-						lastcmd = message_from_sensor.id_data;
-						flag_interrupt = 1;
-						i=-1;
-					}
-
-
-					tx_ctrl_send_Odometry(kinematic.Sx,kinematic.Sy,kinematic.St,kinematic.Vx,kinematic.Vy,kinematic.Vt);
+//				if(message_from_sensor.aktuator == 1 && (message_from_sensor.id_data != lastcmd)){
+//					aktuator_up(aktuator);
+//					message_from_sensor.aktuator = 0;
+//					lastcmd = message_from_sensor.id_data;
+//				}
+//				else if((message_from_sensor.aktuator == 2) && (message_from_sensor.id_data != lastcmd)){
+//					aktuator_down(aktuator);
+//					message_from_sensor.aktuator = 0;
+//					lastcmd = message_from_sensor.id_data;
+//				}
+				if((message_from_sensor.id_data != lastcmd && (message_from_sensor.x_data != 0 || message_from_sensor.y_data != 0 || message_from_sensor.t_data != 0))){
+					lastlength = message_from_sensor.astar_total_length;
+					lastcmd = message_from_sensor.id_data;
+					flag_interrupt = 1;
+					i=-1;
 				}
+				tx_ctrl_send_Odometry(kinematic.Sx,kinematic.Sy,kinematic.St,kinematic.Vx,kinematic.Vy,kinematic.Vt);
+
 
 			}
 			tx_ctrl_task_done(message_from_sensor.astar_msg_id, &message_from_sensor);
@@ -479,11 +481,13 @@ int main(void)
 		}
 		if(message_from_sensor.aktuator == 1 && (message_from_sensor.id_data != lastcmd)){
 			aktuator_up(aktuator);
+//			HAL_Delay(20000);
 			message_from_sensor.aktuator = 0;
 			lastcmd = message_from_sensor.id_data;
 		}
 		else if((message_from_sensor.aktuator == 2) && (message_from_sensor.id_data != lastcmd)){
 			aktuator_down(aktuator);
+//			HAL_Delay(20000);
 			message_from_sensor.aktuator = 0;
 			lastcmd = message_from_sensor.id_data;
 		}

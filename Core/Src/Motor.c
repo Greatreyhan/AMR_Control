@@ -10,7 +10,7 @@
 
 // Berdasarkan jarak roda ke titik pusat dalam meter
 //#define R_AMR	0.50
-#define R_AMR	0.25
+#define R_AMR	0.30
 
 void agv_run_motor(motor_t motor, int16_t speed){
 	HAL_GPIO_WritePin(motor.EN_PORT_R, motor.EN_PIN_R, GPIO_PIN_SET);
