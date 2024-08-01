@@ -169,6 +169,7 @@ int lastlength = 0;
 int lastid = 0;
 int lastcmd = 0;
 int last_i = 0;
+int len_msg = 0;
 uint32_t msgid = 0;
 uint32_t current_msgid = 0;
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
@@ -181,9 +182,6 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 	}
 }
 
-//float kp_all = 13;
-//float ki_all = 13;
-//float kd_all = 1.34;
 int16_t data_sx=0;
 int16_t data_sy=0;
 int16_t data_st=0;
@@ -343,7 +341,8 @@ int main(void)
 	agv_reset_all(motor_A, motor_B, motor_C, motor_D);
 	agv_stop_all(motor_A, motor_B, motor_C, motor_D);
 	aktuator_reset(aktuator);
-	int len_msg = 0;
+
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -351,7 +350,7 @@ int main(void)
 	while(1)
 	  {
 		//--------------------- SEND DATA TESTING ----------------------------//
-	//		tx_ctrl_send_data(kinematic.V1, kinematic.V2, kinematic.V3, kinematic.V4, kinematic.S1,kinematic.S3,kinematic.S4);
+//			tx_ctrl_send_data(kinematic.V1, kinematic.V2, kinematic.V3, kinematic.V4, kinematic.S1,kinematic.S3,kinematic.S4);
 		//--------------------- YAW CALIBRATION PROGRAM ----------------------------//
 	//		if(!is_yaw_calibrated && message_from_sensor.yaw != 0){
 	//			Yaw_Init = message_from_sensor.yaw;
@@ -361,28 +360,28 @@ int main(void)
 
 		CurrentTick = HAL_GetTick();
 
-		if(CurrentTick-SendDataTick > SEND_DATA_INTERVAL){
+		if(CurrentTick-SendDataTick > 100){
 			tx_ctrl_send_Odometry(kinematic.Sx,kinematic.Sy,kinematic.St,kinematic.Vx,kinematic.Vy,kinematic.Vt);
 			SendDataTick = CurrentTick;
 		}
 
 	//------------------------- TEST BENCH ----------------------------------------//
-	//	  agv_reset_all(motor_A, motor_B, motor_C, motor_D);
-	//	  agv_stop_all(motor_A, motor_B, motor_C, motor_D);
-	//	  agv_speed_to_pwm(motor_A, 2000);
-	//	  HAL_Delay(2000);
-	//	  agv_reset_all(motor_A, motor_B, motor_C, motor_D);
-	//	  agv_stop_all(motor_A, motor_B, motor_C, motor_D);
-	//	  agv_speed_to_pwm(motor_B, 2000);
-	//	  HAL_Delay(2000);
-	//	  agv_reset_all(motor_A, motor_B, motor_C, motor_D);
-	//	  agv_stop_all(motor_A, motor_B, motor_C, motor_D);
-	//	  agv_speed_to_pwm(motor_C, 2000);
-	//	  HAL_Delay(2000);
-	//	  agv_reset_all(motor_A, motor_B, motor_C, motor_D);
-	//	  agv_stop_all(motor_A, motor_B, motor_C, motor_D);
-	//	  agv_speed_to_pwm(motor_D, 2000);
-	//	  HAL_Delay(2000);
+//		  agv_reset_all(motor_A, motor_B, motor_C, motor_D);
+//		  agv_stop_all(motor_A, motor_B, motor_C, motor_D);
+//		  agv_speed_to_pwm(motor_A, 500);
+//		  HAL_Delay(2000);
+//		  agv_reset_all(motor_A, motor_B, motor_C, motor_D);
+//		  agv_stop_all(motor_A, motor_B, motor_C, motor_D);
+//		  agv_speed_to_pwm(motor_B, 500);
+//		  HAL_Delay(2000);
+//		  agv_reset_all(motor_A, motor_B, motor_C, motor_D);
+//		  agv_stop_all(motor_A, motor_B, motor_C, motor_D);
+//		  agv_speed_to_pwm(motor_C, 500);
+//		  HAL_Delay(2000);
+//		  agv_reset_all(motor_A, motor_B, motor_C, motor_D);
+//		  agv_stop_all(motor_A, motor_B, motor_C, motor_D);
+//		  agv_speed_to_pwm(motor_D, 500);
+//		  HAL_Delay(2000);
 
 	//----------------------------- TEST KINEMATIC --------------------------------------------//
 
@@ -429,10 +428,7 @@ int main(void)
 
 			for(int i = len_msg; i >= 0; i--){
 				last_i = i;
-//				if(flag_interrupt == 1){
-//					flag_interrupt = 0;
-//					i=-1;
-//				}
+
 				uint32_t cntr = 0;
 				while(!run_to_point_with_yaw(message_from_sensor.astar_coordinate_x[i]*500,message_from_sensor.astar_coordinate_y[i]*500,0,5)){
 					cntr++;
@@ -445,26 +441,13 @@ int main(void)
 						agv_stop_all(motor_A, motor_B, motor_C, motor_D);
 						break;
 					}
-//						tx_ctrl_send_Odometry(kinematic.Sx,kinematic.Sy,kinematic.St,kinematic.Vx,kinematic.Vy,kinematic.Vt);
 				}
 					handle_heading(0,1);
 
 				if(flag_interrupt==1){
 					HAL_Delay(100);
-//						flag_interrupt = 1;
 				}
-//					HAL_Delay(1000);
 
-//				if(message_from_sensor.aktuator == 1 && (message_from_sensor.id_data != lastcmd)){
-//					aktuator_up(aktuator);
-//					message_from_sensor.aktuator = 0;
-//					lastcmd = message_from_sensor.id_data;
-//				}
-//				else if((message_from_sensor.aktuator == 2) && (message_from_sensor.id_data != lastcmd)){
-//					aktuator_down(aktuator);
-//					message_from_sensor.aktuator = 0;
-//					lastcmd = message_from_sensor.id_data;
-//				}
 				if((message_from_sensor.id_data != lastcmd && (message_from_sensor.x_data != 0 || message_from_sensor.y_data != 0 || message_from_sensor.t_data != 0))){
 					lastlength = message_from_sensor.astar_total_length;
 					lastcmd = message_from_sensor.id_data;
@@ -481,13 +464,11 @@ int main(void)
 		}
 		if(message_from_sensor.aktuator == 1 && (message_from_sensor.id_data != lastcmd)){
 			aktuator_up(aktuator);
-//			HAL_Delay(20000);
 			message_from_sensor.aktuator = 0;
 			lastcmd = message_from_sensor.id_data;
 		}
 		else if((message_from_sensor.aktuator == 2) && (message_from_sensor.id_data != lastcmd)){
 			aktuator_down(aktuator);
-//			HAL_Delay(20000);
 			message_from_sensor.aktuator = 0;
 			lastcmd = message_from_sensor.id_data;
 		}
@@ -1159,7 +1140,7 @@ bool set_heading(int16_t heading, int16_t error){
 bool run_to_point_with_yaw(int16_t sx, int16_t sy, uint16_t heading, int16_t error){
 //	if(current_msgid < msgid){
 		double degree = 0;
-		if(abs(kinematic.Sx - sx) < error && abs(kinematic.Sy - sy) < error && abs(degree - heading) < 3){
+		if(abs(kinematic.Sx - sx) < error && abs(kinematic.Sy - sy) < error && abs(degree - heading) < 1){
 			agv_reset_all(motor_A, motor_B, motor_C, motor_D);
 			agv_stop_all(motor_A, motor_B, motor_C, motor_D);
 			return true;
